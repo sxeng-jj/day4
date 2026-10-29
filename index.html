@@ -48,6 +48,14 @@
     font: 700 14px 'Noto Sans KR'; box-shadow: 0 4px 14px rgba(0,0,0,.2);
     transition: transform .2s;
   }
+  #game {
+    position: fixed; left: 14px; bottom: 282px; background: var(--orange); color: #fff;
+    border-radius: 12px; padding: 10px 16px; text-decoration: none; z-index: 2;
+    font: 700 14px 'Noto Sans KR'; box-shadow: 0 4px 14px rgba(0,0,0,.2); transition: transform .2s;
+  }
+  #game small { display: block; font-size: 10px; font-weight: 400; opacity: .9; margin-top: 2px; }
+  #game:hover { transform: translateY(-2px); }
+  @media (max-width: 600px) { #game { bottom: 276px; } }
   #space small { display: block; font-size: 10px; font-weight: 400; opacity: .8; margin-top: 2px; }
   #space:hover { transform: translateY(-2px); }
 
@@ -91,6 +99,7 @@
 
 <div id="logo"><i></i><div>제주<small>JEJU DIORAMA</small></div></div>
 <button id="menu">MENU</button>
+<a id="game" href="game.html">🍊 감귤 게임<small>폴짝폴짝 점프 대모험</small></a>
 <a id="space" href="space.html">🚀 우주 보기<small>우주선이 지나가는 태양계</small></a>
 <div id="cards"></div>
 
