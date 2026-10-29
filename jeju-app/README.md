@@ -111,6 +111,22 @@ git push
 
 ---
 
+## 5. 상점 · 장바구니 (Supabase 테이블)
+
+1. Supabase **SQL Editor → New query** 에 [`supabase/cart.sql`](supabase/cart.sql) 전체를 붙여넣고 **Ctrl+Enter**.
+   ("destructive operations" 경고는 `drop policy if exists` 때문이며 **Run this query** 를 눌러도 안전해요.)
+2. **Table Editor** 에 `products`(샘플 8행)와 `cart_items`(0행)가 보이면 성공.
+3. 사이트의 **상점**(`/shop`)에서 상품 담기 → **장바구니**(`/cart`, 로그인 필요)에서 수량 변경/삭제.
+
+| 테이블 | 역할 | 보안(RLS) |
+|---|---|---|
+| `products` | 상품 목록 | 누구나 읽기만 가능 |
+| `cart_items` | 회원별 장바구니 (`user_id`, `product_id`, `quantity`) | 로그인한 본인 행만 조회/추가/수정/삭제 |
+
+- 같은 상품을 또 담으면 새 줄이 아니라 수량이 늘어나요 (`unique (user_id, product_id)`).
+- 상품을 바꾸거나 추가하려면 Supabase **Table Editor → products** 에서 직접 수정하세요. (브라우저에서는 쓰기 불가)
+- 결제/주문 기능은 아직 없고, "주문하기" 버튼은 준비 중 안내만 보여줘요.
+
 ## 참고
 
 - 게임 접근 제한은 **화면 가드(ProtectedRoute)** 입니다. `public/games/*.html` 파일 자체는 주소를 알면 직접 열 수 있어요. 진짜 보호가 필요한 데이터(점수 저장 등)를 추가할 땐 Supabase 테이블에 **RLS 정책**을 걸어 주세요.

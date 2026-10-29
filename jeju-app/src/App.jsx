@@ -7,6 +7,8 @@ import Home from './pages/Home.jsx';
 import Characters from './pages/Characters.jsx';
 import Play from './pages/Play.jsx';
 import Game from './pages/Game.jsx';
+import Shop from './pages/Shop.jsx';
+import Cart from './pages/Cart.jsx';
 import Login from './pages/Login.jsx';
 import Signup from './pages/Signup.jsx';
 import Forgot from './pages/Forgot.jsx';
@@ -34,6 +36,8 @@ export default function App() {
           <Route path="/characters" element={<Characters />} />
           <Route path="/play" element={<Play />} />
           <Route path="/play/:id" element={<ProtectedRoute><Game /></ProtectedRoute>} />
+          <Route path="/shop" element={<Shop />} />
+          <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/forgot" element={<Forgot />} />

@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
+import { useCart } from '../context/CartContext.jsx';
 import Gyuli from './Gyuli.jsx';
 
 export default function Navbar() {
   const { user, nickname, signOut, configured } = useAuth();
+  const { count } = useCart();
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
   const close = () => setOpen(false);
@@ -30,6 +32,12 @@ export default function Navbar() {
         <nav className={open ? 'links open' : 'links'}>
           <NavLink to="/characters" onClick={close}>캐릭터</NavLink>
           <NavLink to="/play" onClick={close}>게임</NavLink>
+          <NavLink to="/shop" onClick={close}>상점</NavLink>
+          {user && (
+            <NavLink to="/cart" onClick={close} className="cartlink">
+              🛒 장바구니{count > 0 && <b className="badge">{count}</b>}
+            </NavLink>
+          )}
           {user && <NavLink to="/me" onClick={close}>내 정보</NavLink>}
           <span className="spacer" />
           {user ? (

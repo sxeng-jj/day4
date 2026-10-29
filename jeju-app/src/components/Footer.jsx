@@ -11,6 +11,7 @@ export default function Footer() {
         <div className="foot-links">
           <Link to="/characters">캐릭터</Link>
           <Link to="/play">게임</Link>
+          <Link to="/shop">상점</Link>
           <Link to="/signup">회원가입</Link>
         </div>
       </div>
