@@ -20,7 +20,10 @@ import NotFound from './pages/NotFound.jsx';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
-  useEffect(() => window.scrollTo(0, 0), [pathname]);
+  // 중괄호 필수: 값을 반환하면 React 가 그것을 cleanup 함수로 호출하려다 "r is not a function" 으로 화면이 깨진다.
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
   return null;
 }
 
