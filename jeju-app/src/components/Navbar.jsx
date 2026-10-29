@@ -32,6 +32,8 @@ export default function Navbar() {
         <nav className={open ? 'links open' : 'links'}>
           <NavLink to="/characters" onClick={close}>캐릭터</NavLink>
           <NavLink to="/play" onClick={close}>게임</NavLink>
+          <NavLink to="/explore" onClick={close}>3D 탐험</NavLink>
+          <NavLink to="/stats" onClick={close}>관람객 3D</NavLink>
           <NavLink to="/shop" onClick={close}>상점</NavLink>
           {user && (
             <NavLink to="/cart" onClick={close} className="cartlink">

@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>제주 3D 탐험</title>
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root { --orange:#ff8a1f; --brown:#4a2f1f; --line:#eadcc8; }
+  * { box-sizing: border-box; user-select: none; }
+  html, body { margin: 0; height: 100%; overflow: hidden; font-family: 'Noto Sans KR', system-ui, sans-serif; color: var(--brown); background: #cfeaf5; }
+  canvas { position: fixed; inset: 0; display: block; }
+  .panel { position: fixed; z-index: 5; background: rgba(255,255,255,.92); border-radius: 18px; box-shadow: 0 6px 20px rgba(0,0,0,.2); padding: 12px 14px; backdrop-filter: blur(6px); }
+  #head { left: 12px; top: 10px; } #head h1 { font: 400 22px 'Jua', sans-serif; margin: 0; } #head p { margin: 2px 0 0; font-size: 12px; color: #7a6a5f; }
+  #layers { left: 12px; top: 74px; width: 188px; display: grid; gap: 6px; }
+  #layers h2, #listPanel h2 { font: 400 15px 'Jua', sans-serif; margin: 0 0 2px; }
+  .chip { display: flex; align-items: center; gap: 8px; border: 2px solid var(--line); background: #fff; border-radius: 999px; padding: 5px 12px; font: 700 13px 'Noto Sans KR', sans-serif; color: var(--brown); cursor: pointer; text-align: left; }
+  .chip i { width: 12px; height: 12px; border-radius: 50%; background: var(--c); flex: none; } .chip em { margin-left: auto; font-style: normal; font-weight: 400; color: #7a6a5f; font-size: 12px; }
+  .chip.off { opacity: .45; } .chip.off i { background: #bbb; }
+  #listPanel { right: 12px; top: 10px; width: 250px; max-height: calc(100vh - 150px); overflow: auto; display: none; }
+  #listPanel.on { display: block; }
+  .grp { font: 700 12px 'Noto Sans KR'; margin: 10px 0 4px; color: #7a6a5f; }
+  .item { display: block; width: 100%; text-align: left; border: 0; background: transparent; padding: 5px 8px; border-radius: 10px; font: 700 13px 'Noto Sans KR', sans-serif; color: var(--brown); cursor: pointer; }
+  .item:hover, .item.sel { background: #fff1d6; }
+  #bottom { position: fixed; left: 0; right: 0; bottom: 10px; z-index: 6; display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; padding: 0 10px; }
+  #bottom > * { pointer-events: auto; }
+  #card { width: min(560px, 100%); display: none; position: relative; padding: 14px 18px; border-left: 8px solid var(--c, #ff8a1f); }
+  #card.on { display: block; } #card .tag { display: inline-block; font-size: 11px; font-weight: 700; color: #fff; background: var(--c); padding: 2px 10px; border-radius: 999px; }
+  #card h2 { font: 400 24px 'Jua', sans-serif; margin: 4px 0 2px; } #card p { margin: 0; font-size: 14px; color: #5e4f45; line-height: 1.55; }
+  #card .nav { position: absolute; right: 12px; top: 10px; display: flex; gap: 6px; } #card .nav button { border: 0; width: 30px; height: 30px; border-radius: 50%; background: #fff1d6; cursor: pointer; font-size: 14px; color: var(--brown); }
+  #bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: center; position: static; }
+  .seg { display: inline-flex; border: 2px solid var(--line); border-radius: 999px; overflow: hidden; } .seg button { border: 0; background: #fff; padding: 6px 13px; cursor: pointer; font: 700 13px 'Noto Sans KR', sans-serif; color: var(--brown); } .seg button.on { background: var(--orange); color: #fff; }
+  .btn { border: 0; cursor: pointer; background: linear-gradient(#ffa83d, #e8741a); color: #fff; padding: 8px 16px; border-radius: 999px; box-shadow: 0 3px 0 #b8520e; font: 700 13px 'Noto Sans KR', sans-serif; } .btn.ghost { background: #fff; color: var(--brown); box-shadow: 0 0 0 2px var(--line); }
+  #tip { position: fixed; z-index: 9; pointer-events: none; background: rgba(74,47,31,.95); color: #fff; padding: 5px 11px; border-radius: 10px; font-size: 13px; font-weight: 700; display: none; white-space: nowrap; }
+  @media (max-width: 760px) {
+    #layers { top: 66px; width: auto; right: 12px; display: flex; overflow-x: auto; padding: 8px; gap: 6px; } #layers h2 { display: none; } .chip { flex: none; padding: 4px 10px; } .chip em { display: none; }
+    #head p { display: none; } #listPanel { top: 120px; width: calc(100vw - 24px); max-height: 45vh; }
+  }
+</style>
+</head>
+<body>
+<div id="head" class="panel"><h1>제주 3D 탐험</h1><p>드래그: 회전 · 휠/핀치: 확대 · 마커를 눌러 보세요</p></div>
+<div id="layers" class="panel"><h2>보고 싶은 것</h2><div id="chips" style="display:contents"></div></div>
+<div id="listPanel" class="panel"><h2>장소 목록</h2><div id="list"></div></div>
+<div id="bottom">
+  <div id="card" class="panel"><span class="tag" id="cTag"></span><h2 id="cName"></h2><p id="cDesc"></p><div class="nav"><button id="prev" title="이전">◀</button><button id="next" title="다음">▶</button><button id="cClose" title="닫기">✕</button></div></div>
+  <div id="bar" class="panel">
+    <div class="seg" id="tod"><button data-t="day" class="on">🌞 낮</button><button data-t="dusk">🌇 노을</button><button data-t="night">🌙 밤</button></div>
+    <button class="btn" id="tour">🎬 자동 투어</button>
+    <button class="btn ghost" id="listBtn">📍 장소 목록</button>
+    <button class="btn ghost" id="home">🔄 전체 보기</button>
+  </div>
+</div>
+<div id="tip"></div>
+
+<script type="importmap">
+{ "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const $ = id => document.getElementById(id);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+const sstep = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+let seed = 20251;
+const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+
+/* =========================================================
+   렌더러 · 하늘 · 조명
+   ========================================================= */
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); renderer.setSize(innerWidth, innerHeight);
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.outputColorSpace = THREE.SRGBColorSpace;
+document.body.prepend(renderer.domElement);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xcfeaf5); scene.fog = new THREE.Fog(0xcfeaf5, 45, 150);
+const camera = new THREE.PerspectiveCamera(42, innerWidth / innerHeight, 0.1, 400);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true; controls.minDistance = 5; controls.maxDistance = 60; controls.maxPolarAngle = 1.5;
+
+const hemi = new THREE.HemisphereLight(0xffffff, 0xffe2b8, 2.1); scene.add(hemi);
+const sun = new THREE.DirectionalLight(0xfff1d6, 2.2); sun.position.set(10, 20, 12); scene.add(sun);
+const skyU = { top: { value: new THREE.Color(0x3f9cf0) }, bot: { value: new THREE.Color(0xcfeaf5) } };
+const dome = new THREE.Mesh(new THREE.SphereGeometry(260, 24, 16), new THREE.ShaderMaterial({
+  side: THREE.BackSide, depthWrite: false, fog: false, uniforms: skyU,
+  vertexShader: 'varying vec3 vP; void main(){ vP = normalize(position); gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.); }',
+  fragmentShader: 'uniform vec3 top; uniform vec3 bot; varying vec3 vP; void main(){ float h = clamp(vP.y*1.6+0.05,0.,1.); gl_FragColor = vec4(mix(bot,top,pow(h,.6)),1.); }'
+}));
+scene.add(dome);
+const starGeo = new THREE.BufferGeometry(), sp = [];
+for (let i = 0; i < 400; i++) { const a = rnd() * 6.283, b = Math.acos(rnd() * 0.9 + 0.1); sp.push(Math.sin(b) * Math.cos(a) * 240, Math.cos(b) * 240, Math.sin(b) * Math.sin(a) * 240); }
+starGeo.setAttribute('position', new THREE.Float32BufferAttribute(sp, 3));
+const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 1.6, sizeAttenuation: false, transparent: true, opacity: 0, fog: false, depthWrite: false })); scene.add(stars);
+
+/* =========================================================
+   지형  (타원형 섬 + 한라산 + 오름 + 우도·마라도·비양도·산방산)
+   ========================================================= */
+const noise = (x, z) => Math.sin(x * 1.7 + 1.3) * Math.cos(z * 1.9) * 0.5 + Math.sin(x * 0.7 + z * 1.1) * 0.5;
+const OREUM = [[-6, -2, 0.9, 1.1], [4, -3, 0.8, 1.0], [2.5, -4.2, 0.7, 0.9], [6.6, -0.6, 0.7, 0.8]];
+const ISLETS = [[13.5, -3.2, 1.45, 0.75], [-12.4, -1.2, 1.3, 0.6], [-1, 12.3, 0.95, 0.8], [-7.6, 2.4, 2.3, 0.55]];   // 우도, 비양도, 마라도, 산방산
+function H(x, z) {
+  const mask = 1 - sstep(0.55, 1.0, Math.hypot(x / 11, z / 7));
+  let h = -0.35 + 1.25 * Math.pow(mask, 0.8) + 0.1 * noise(x, z) * (0.2 + mask);
+  const r2 = (x + 1) ** 2 + (z - 0.5) ** 2;
+  h += 5.0 * mask * Math.exp(-r2 / 7.22) - 1.0 * Math.exp(-r2 / 0.5);
+  for (const [ox, oz, a, s] of OREUM) h += a * mask * Math.exp(-((x - ox) ** 2 + (z - oz) ** 2) / (2 * s * s));
+  const sr = Math.hypot(x - 9, z + 1.5);
+  h += 1.4 * Math.exp(-sr * sr / 5.12) + 2.0 * Math.exp(-((sr - 1.2) ** 2) / 0.405);
+  for (const [ox, oz, a, s] of ISLETS) h += a * Math.exp(-((x - ox) ** 2 + (z - oz) ** 2) / (2 * s * s));
+  return h;
+}
+const gy = (x, z, min = 0.02) => Math.max(min, H(x, z));
+const Cc = h => new THREE.Color(h);
+const cSand = Cc(0xeadcae), cSh = Cc(0x6dbfc0), cDeep = Cc(0x3f8fa5), cGA = Cc(0x8fc860), cGB = Cc(0x62a84a), cF = Cc(0x4a7d3c), cRock = Cc(0x7a736d), cBas = Cc(0x37373d);
+function colorAt(x, z, h, out) {
+  const n = noise(x * 2.3, z * 1.7) * 0.5 + 0.5;
+  if (h < 0.12) out.copy(cSand).lerp(cSh, sstep(0.05, -0.15, h)).lerp(cDeep, sstep(-0.15, -0.4, h));
+  else { out.copy(cGA).lerp(cGB, n); out.lerp(cF, sstep(1.8, 3.2, h) * 0.9); out.lerp(cRock, sstep(3.9, 4.5, h)); out.lerp(cSand, 1 - sstep(0.12, 0.3, h)); }
+  if (h > 0 && h < 0.45 && n > 0.62) out.lerp(cBas, 0.85 * sstep(0.62, 0.7, n));
+}
+const SX = 36, SZ = 30;
+const tg = new THREE.PlaneGeometry(SX, SZ, 120, 100).rotateX(-Math.PI / 2);
+{
+  const p = tg.attributes.position, col = new Float32Array(p.count * 3), c = new THREE.Color();
+  for (let i = 0; i < p.count; i++) { const x = p.getX(i), z = p.getZ(i), h = H(x, z); p.setY(i, h); colorAt(x, z, h, c); col.set([c.r, c.g, c.b], i * 3); }
+  tg.setAttribute('color', new THREE.BufferAttribute(col, 3)); tg.computeVertexNormals();
+}
+scene.add(new THREE.Mesh(tg, new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.95 })));
+const std = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, flatShading: true, roughness: 0.85, ...o });
+{ const f = new THREE.Mesh(new THREE.BoxGeometry(SX, 3.2, SZ), std(0x3a7f95, { roughness: 1 })); f.position.y = -2.0;
+  const s = new THREE.Mesh(new THREE.BoxGeometry(SX + 0.6, 0.7, SZ + 0.6), std(0x2e2b2e, { roughness: 1 })); s.position.y = -3.95; scene.add(f, s); }
+const seaMat = new THREE.MeshStandardMaterial({ color: 0x59c3e0, transparent: true, opacity: 0.72, roughness: 0.15, flatShading: true });
+const seaGeo = new THREE.PlaneGeometry(SX, SZ, 72, 60).rotateX(-Math.PI / 2);
+const sea = new THREE.Mesh(seaGeo, seaMat); sea.position.y = -0.05; scene.add(sea);
+const seaBase = Float32Array.from(seaGeo.attributes.position.array);
+const lake = new THREE.Mesh(new THREE.CircleGeometry(0.55, 20).rotateX(-Math.PI / 2), std(0x4fb8e0, { flatShading: false, roughness: 0.1 })); lake.position.set(-1, H(-1, 0.5) + 0.07, 0.5); scene.add(lake);
+
+/* =========================================================
+   모델 만들기
+   ========================================================= */
+const matWhite = std(0xf6f6f2, { roughness: 0.5 }), matRed = std(0xd9483b), matDark = std(0x2f3340), matWood = std(0x9c6a3b), matStone = std(0x6e6c6a, { roughness: 1 });
+function turbine(scale = 1) {
+  const g = new THREE.Group(), tw = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.1, 2.2, 8), matWhite); tw.position.y = 1.1;
+  const nac = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.16, 0.34), matWhite); nac.position.y = 2.2;
+  const rotor = new THREE.Group(); rotor.position.set(0, 2.2, 0.2);
+  rotor.add(new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 8), matWhite));
+  for (let i = 0; i < 3; i++) { const b = new THREE.Mesh(new THREE.BoxGeometry(0.08, 1.05, 0.02).translate(0, 0.52, 0), matWhite); b.rotation.z = i * Math.PI * 2 / 3; rotor.add(b); }
+  g.add(tw, nac, rotor); g.scale.setScalar(scale); g.userData.rotor = rotor; g.userData.speed = 1.2 + rnd() * 0.9; return g;
+}
+const beams = [];
+function lighthouse(h = 2.4) {
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.4, h, 16), matWhite); body.position.y = h / 2;
+  const band = new THREE.Mesh(new THREE.CylinderGeometry(0.31, 0.34, 0.3, 16), matRed); band.position.y = h * 0.45;
+  const gal = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 0.08, 16), matDark); gal.position.y = h;
+  const lamp = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.36, 12), new THREE.MeshStandardMaterial({ color: 0xfff2a8, emissive: 0xffd84a, emissiveIntensity: 1.6 })); lamp.position.y = h + 0.22;
+  const cap = new THREE.Mesh(new THREE.ConeGeometry(0.3, 0.3, 12), matRed); cap.position.y = h + 0.55;
+  const pivot = new THREE.Group(); pivot.position.y = h + 0.22;
+  const mat = new THREE.MeshBasicMaterial({ color: 0xfff2a8, transparent: true, opacity: 0.25, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+  for (const s of [1, -1]) { const cone = new THREE.Mesh(new THREE.ConeGeometry(0.55, 5, 20, 1, true).rotateZ(Math.PI / 2).translate(2.5, 0, 0), mat); cone.scale.x = s; pivot.add(cone); }
+  g.add(body, band, gal, lamp, cap, pivot); g.userData.pivot = pivot; g.userData.mat = mat; g.userData.lamp = lamp; beams.push(g); return g;
+}
+function statue(scale = 1) {
+  const g = new THREE.Group();
+  const b = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.36, 0.9, 10), matStone); b.position.y = 0.45;
+  const h = new THREE.Mesh(new THREE.SphereGeometry(0.33, 12, 10).scale(1, 1.1, 1), matStone); h.position.y = 1.1;
+  const hat = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.33, 0.22, 10), matStone); hat.position.y = 1.5;
+  const nose = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 8), matStone); nose.position.set(0, 1.07, 0.33);
+  g.add(b, h, hat, nose);
+  for (const s of [-1, 1]) { const e = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 8), new THREE.MeshBasicMaterial({ color: 0x111111 })); e.position.set(s * 0.13, 1.17, 0.29);
+    const a = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.11, 0.3), matStone); a.position.set(s * 0.12, 0.6, 0.32); g.add(e, a); }
+  g.scale.setScalar(scale); return g;
+}
+const boats = [];
+function boat(color = 0xffffff, scale = 1) {
+  const g = new THREE.Group(), hull = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.18, 0.34), std(0x2b4a8a)); hull.position.y = 0.08;
+  const bow = new THREE.Mesh(new THREE.ConeGeometry(0.17, 0.3, 4).rotateZ(-Math.PI / 2).scale(1, 0.55, 1), std(0x2b4a8a)); bow.position.set(0.58, 0.08, 0);
+  const cab = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.24, 0.26), std(color)); cab.position.set(-0.1, 0.26, 0);
+  const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.5, 5), matDark); mast.position.set(0.15, 0.45, 0);
+  g.add(hull, bow, cab, mast); g.scale.setScalar(scale * 1.3); g.userData.ph = rnd() * 6; boats.push(g); return g;
+}
+const coast = (deg, d = 0.82) => { const a = deg * Math.PI / 180; return [11 * d * Math.cos(a), 7 * d * Math.sin(a)]; };
+const outward = (x, z) => { const nx = x / 121, nz = z / 49, l = Math.hypot(nx, nz); return [nx / l, nz / l]; };
+function pier(x, z, len, big) {
+  const [nx, nz] = outward(x, z), g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = Math.atan2(nx, nz);
+  const p = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.14, len), std(0xb9b2a6, { roughness: 1 })); p.position.set(0, 0.1, len / 2 - 0.4); g.add(p);
+  const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 8), new THREE.MeshStandardMaterial({ color: 0xffe9a0, emissive: 0xffd84a, emissiveIntensity: 1.4 })); lamp.position.set(0.2, 0.55, len - 0.5); g.add(lamp);
+  const post = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.45, 6), matDark); post.position.set(0.2, 0.33, len - 0.5); g.add(post);
+  if (big) {
+    for (const s of [-1, 1]) { const arm = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.2, 0.34), std(0x9a948a, { roughness: 1 })); arm.position.set(s * 0.95, 0.1, len - 0.5); g.add(arm);
+      const bt = boat(s > 0 ? 0xffd75a : 0xff8fb8, 1); bt.position.set(s * 0.55, -0.02, len * 0.55); bt.rotation.y = Math.PI / 2; g.add(bt); }
+    const crane = new THREE.Group(), pole = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.1, 0.1), matRed); pole.position.y = 0.65; const jib = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.08, 0.08), matRed); jib.position.set(0.35, 1.2, 0);
+    crane.add(pole, jib); crane.position.set(-0.55, 0, 0.5); g.add(crane);
+  } else { const bt = boat(0xffd75a, 0.9); bt.position.set(0.6, -0.02, len * 0.6); bt.rotation.y = Math.PI / 2; g.add(bt); }
+  return g;
+}
+
+/* =========================================================
+   장소 데이터 (좌표: x 동쪽+, z 남쪽+)
+   ========================================================= */
+const CATS = {
+  spot: { name: '관광지', icon: '🏞️', color: '#2f9bff' }, oreum: { name: '오름', icon: '⛰️', color: '#4f9a3a' },
+  olle: { name: '올레길', icon: '🥾', color: '#e0457b' }, harbor: { name: '항·포구', icon: '⚓', color: '#1e6fe0' },
+  orchard: { name: '감귤 재배지', icon: '🍊', color: '#ff8a1f' }, wind: { name: '풍력발전기', icon: '💨', color: '#2aa198' },
+  light: { name: '등대', icon: '🗼', color: '#d94f4f' }, statue: { name: '돌하르방', icon: '🗿', color: '#7c7a78' }
+};
+const POIS = [
+  { id: 'hallasan', cat: 'spot', name: '한라산 백록담', p: [-1, 0.5], lift: 1.3, desc: '해발 1,947m, 대한민국에서 가장 높은 산이에요. 정상에는 화산 분화구에 물이 고인 백록담이 있어요.' },
+  { id: 'seongsan', cat: 'spot', name: '성산일출봉', p: [9, -1.5], lift: 1.4, desc: '바다 위에서 솟아오른 거대한 분화구예요. 해돋이 명소이고 유네스코 세계자연유산으로 등재되어 있어요.' },
+  { id: 'cheonjiyeon', cat: 'spot', name: '천지연폭포', p: [-0.4, 5.0], lift: 1.2, desc: '서귀포 바닷가 가까이에 있는 폭포예요. 울창한 난대림 사이로 시원한 물줄기가 떨어져요.' },
+  { id: 'jusangjeolli', cat: 'spot', name: '중문 주상절리대', p: [-5.1, 4.3], lift: 1.2, desc: '뜨거운 용암이 식으면서 육각 기둥 모양으로 갈라진 해안 절벽이에요.' },
+  { id: 'sanbang', cat: 'spot', name: '산방산', p: [-7.6, 2.4], lift: 1.2, desc: '끈적한 용암이 솟아올라 굳은 종 모양의 바위산이에요. 바닷가에 우뚝 서 있어요.' },
+  { id: 'udo', cat: 'spot', name: '우도', p: [13.5, -3.2], lift: 1.1, desc: '성산포 앞바다의 섬이에요. 소가 누워 있는 모습을 닮아서 우도(牛島)라고 불러요.' },
+  { id: 'mara', cat: 'spot', name: '마라도', p: [-1, 12.3], lift: 1.0, desc: '우리나라 가장 남쪽에 있는 섬이에요. 납작한 초원 위로 바람이 시원하게 불어요.' },
+  { id: 'biyang', cat: 'spot', name: '비양도', p: [-12.4, -1.2], lift: 1.0, desc: '한림 앞바다에 떠 있는 작은 화산섬이에요. 둥근 분화구가 남아 있어요.' },
+  { id: 'saebyeol', cat: 'oreum', name: '새별오름', p: [-6, -2], lift: 1.0, desc: '저녁 하늘에 외로이 뜬 샛별 같다고 이름 붙은 오름이에요. 억새와 들불축제로 유명해요.' },
+  { id: 'geomun', cat: 'oreum', name: '거문오름', p: [2.5, -4.2], lift: 1.0, desc: '숲이 우거져 검게 보여 거문오름이에요. 이곳에서 흘러나온 용암이 동굴들을 만들었어요.' },
+  { id: 'yongnuni', cat: 'oreum', name: '용눈이오름', p: [4, -3], lift: 1.0, desc: '부드러운 곡선이 아름다운 오름이에요. 분화구 능선을 따라 걷기 좋아요.' },
+  { id: 'darangshi', cat: 'oreum', name: '다랑쉬오름', p: [6.6, -0.6], lift: 1.0, desc: '깊고 둥근 분화구가 달처럼 보여 다랑쉬(달랑쉬)라고 해요. \'오름의 여왕\'이라 불려요.' },
+  { id: 'olle1', cat: 'olle', deg: -28, name: '올레 1코스', desc: '성산일출봉과 바다를 끼고 걷는 코스예요. 올레는 \'집 앞 좁은 골목길\'이라는 제주말이에요.' },
+  { id: 'olle7', cat: 'olle', deg: 60, name: '올레 7코스', desc: '서귀포 바닷가 절벽과 외돌개를 따라 걷는 코스예요. 파도 소리가 계속 따라와요.' },
+  { id: 'olle10', cat: 'olle', deg: 140, name: '올레 10코스', desc: '산방산과 바다를 번갈아 보며 걷는 남서쪽 해안 코스예요.' },
+  { id: 'olle14', cat: 'olle', deg: -152, name: '올레 14코스', desc: '서쪽 바닷가 마을과 돌담길을 지나는 코스예요.' },
+  { id: 'olle18', cat: 'olle', deg: -78, name: '올레 18코스', desc: '제주시 바닷가와 포구를 따라 이어지는 북쪽 코스예요.' },
+  { id: 'jeju-port', cat: 'harbor', deg: -95, pier: 3.0, big: true, name: '제주항', desc: '섬의 북쪽 관문이에요. 여객선과 화물선이 육지와 제주를 이어줘요.' },
+  { id: 'seogwipo-port', cat: 'harbor', deg: 82, pier: 2.6, big: true, name: '서귀포항', desc: '남쪽 바다의 항구예요. 새연교와 새섬이 가까워요.' },
+  { id: 'seongsanpo', cat: 'harbor', deg: 14, pier: 2.6, big: true, name: '성산포항', desc: '우도로 가는 배가 오가는 항구예요.' },
+  { id: 'hallim', cat: 'harbor', deg: -172, pier: 2.4, big: true, name: '한림항', desc: '서쪽 바다의 항구예요. 비양도로 가는 배가 떠나요.' },
+  { id: 'aewol', cat: 'harbor', deg: -128, pier: 1.8, name: '애월포구', desc: '에메랄드빛 바다와 카페 거리로 유명한 작은 포구예요.' },
+  { id: 'gimnyeong', cat: 'harbor', deg: -48, pier: 1.8, name: '김녕포구', desc: '맑은 바다와 어선들이 모여 있는 북동쪽 포구예요.' },
+  { id: 'beophwan', cat: 'harbor', deg: 110, pier: 1.8, name: '법환포구', desc: '남쪽 바다를 마주한 한적한 포구예요. 해녀들이 물질을 하는 곳이에요.' },
+  { id: 'orchard-a', cat: 'orchard', p: [-4.3, 2.5], r: 1.7, name: '안덕 감귤밭', desc: '따뜻한 남쪽 비탈에 줄지어 선 감귤나무들이에요. 겨울이면 주황빛으로 물들어요.' },
+  { id: 'orchard-b', cat: 'orchard', p: [2.6, 2.8], r: 1.6, name: '서귀포·효돈 감귤밭', desc: '한라산 남쪽 햇살을 듬뿍 받는 감귤 재배지예요. 감귤이가 태어난 곳이에요!' },
+  { id: 'orchard-c', cat: 'orchard', p: [6.2, 1.8], r: 1.5, name: '남원 감귤밭', desc: '돌담으로 바람을 막아 감귤을 키우는 동쪽 재배지예요.' },
+  { id: 'wind-hankyung', cat: 'wind', deg: 168, d: 0.76, name: '한경 풍력단지', desc: '서쪽 바닷바람을 받아 전기를 만드는 풍력발전기들이에요.' },
+  { id: 'wind-haengwon', cat: 'wind', deg: -34, d: 0.76, name: '행원 풍력단지', desc: '북동쪽 해안에서 하얀 날개를 돌리는 풍력발전기들이에요.' },
+  { id: 'wind-gasiri', cat: 'wind', p: [3.6, 0.9], name: '가시리 풍력단지', desc: '초원 위에 늘어선 풍력발전기들이에요. 바람이 많은 제주의 상징이에요.' },
+  { id: 'light-dodu', cat: 'light', deg: -110, d: 0.8, name: '도두 등대', desc: '제주공항 가까운 바닷가에서 밤바다를 비추는 등대예요.' },
+  { id: 'light-mara', cat: 'light', p: [-1, 12.3], off: [0.35, 0.2], name: '마라도 등대', desc: '국토 최남단에서 남쪽 바다를 지켜주는 등대예요.' },
+  { id: 'light-udo', cat: 'light', p: [13.5, -3.2], off: [-0.5, 0.3], name: '우도 등대', desc: '우도 언덕 위에서 뱃길을 밝혀주는 등대예요.' },
+  { id: 'statue-airport', cat: 'statue', deg: -62, d: 0.8, scale: 2.2, name: '제주 관문 돌하르방', desc: '제주를 찾는 사람들을 반겨주는 커다란 돌하르방이에요.' },
+  { id: 'statue-seongeup', cat: 'statue', p: [5.2, 0.2], scale: 2.2, name: '성읍 돌하르방', desc: '옛 마을 성읍민속마을에서 마을을 지키는 돌하르방이에요.' },
+  { id: 'statue-seogwipo', cat: 'statue', p: [0.6, 4.0], scale: 2.2, name: '서귀포 돌하르방', desc: '서귀포 거리에서 지나가는 사람들을 지켜보는 돌하르방이에요.' }
+];
+POIS.forEach(o => {
+  if (o.deg !== undefined) o.p = coast(o.deg, o.d ?? 0.8);
+  if (o.off) o.p = [o.p[0] + o.off[0], o.p[1] + o.off[1]];
+  o.y = gy(o.p[0], o.p[1], 0.05);
+});
+
+/* =========================================================
+   분류별 3D 요소 (켜기/끄기)
+   ========================================================= */
+const layerGroups = Object.fromEntries(Object.keys(CATS).map(k => [k, new THREE.Group()]));
+Object.values(layerGroups).forEach(g => scene.add(g));
+
+// 감귤 재배지 (줄 맞춘 나무)
+{
+  const trunkG = new THREE.CylinderGeometry(0.05, 0.08, 0.4, 6), crownG = new THREE.IcosahedronGeometry(0.34, 1), fruitG = new THREE.SphereGeometry(0.07, 7, 6);
+  const spots = [];
+  for (const o of POIS.filter(o => o.cat === 'orchard')) for (let ix = -4; ix <= 4; ix++) for (let iz = -4; iz <= 4; iz++) {
+    const x = o.p[0] + ix * 0.5, z = o.p[1] + iz * 0.5;
+    if (Math.hypot(x - o.p[0], z - o.p[1]) > o.r || H(x, z) < 0.3) continue; spots.push([x, z]);
+  }
+  const trunks = new THREE.InstancedMesh(trunkG, std(0x6b4a2f), spots.length), crowns = new THREE.InstancedMesh(crownG, std(0x4f9a3a), spots.length), fruits = new THREE.InstancedMesh(fruitG, new THREE.MeshStandardMaterial({ color: 0xff8a1f, emissive: 0x662200, emissiveIntensity: 0.4 }), spots.length * 4);
+  const d = new THREE.Object3D(); let f = 0;
+  spots.forEach(([x, z], i) => {
+    const y = H(x, z); d.rotation.set(0, 0, 0); d.scale.setScalar(1); d.position.set(x, y + 0.2, z); d.updateMatrix(); trunks.setMatrixAt(i, d.matrix);
+    d.position.set(x, y + 0.55, z); d.updateMatrix(); crowns.setMatrixAt(i, d.matrix);
+    for (let k = 0; k < 4; k++) { const a = rnd() * 6.28, b = 0.4 + rnd(); d.position.set(x + Math.cos(a) * Math.sin(b) * 0.34, y + 0.55 + Math.cos(b) * 0.34, z + Math.sin(a) * Math.sin(b) * 0.34); d.updateMatrix(); fruits.setMatrixAt(f++, d.matrix); }
+  });
+  layerGroups.orchard.add(trunks, crowns, fruits);
+  for (const o of POIS.filter(o => o.cat === 'orchard')) { const r = new THREE.Mesh(new THREE.RingGeometry(o.r - 0.06, o.r + 0.02, 48).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0xff8a1f, transparent: true, opacity: 0.8 })); r.position.set(o.p[0], gy(o.p[0], o.p[1]) + 0.08, o.p[1]); layerGroups.orchard.add(r); }
+}
+// 풍력발전기
+const turbines = [];
+for (const o of POIS.filter(o => o.cat === 'wind')) {
+  const [x, z] = o.p, tx = o.deg !== undefined ? -Math.sin(o.deg * Math.PI / 180) : 1, tz = o.deg !== undefined ? Math.cos(o.deg * Math.PI / 180) : 0;
+  for (let i = -1; i <= 1; i++) { const t = turbine(1.15), px = x + tx * i * 0.9, pz = z + tz * i * 0.9; t.position.set(px, gy(px, pz), pz); t.rotation.y = rnd() * 0.6 - 0.3 + (o.deg !== undefined ? -(o.deg * Math.PI / 180) + Math.PI / 2 : 0); layerGroups.wind.add(t); turbines.push(t); }
+}
+// 등대
+for (const o of POIS.filter(o => o.cat === 'light')) { const l = lighthouse(o.id === 'light-mara' ? 2.0 : 2.4); l.position.set(o.p[0], o.y, o.p[1]); layerGroups.light.add(l); }
+// 돌하르방
+for (const o of POIS.filter(o => o.cat === 'statue')) { const s = statue((o.scale || 1.6) * 0.72); s.position.set(o.p[0], o.y, o.p[1]); s.rotation.y = o.deg !== undefined ? Math.atan2(...outward(...o.p)) : Math.PI * 0.15; layerGroups.statue.add(s); }
+// 항·포구
+for (const o of POIS.filter(o => o.cat === 'harbor')) layerGroups.harbor.add(pier(o.p[0], o.p[1], o.pier, o.big));
+// 올레길
+const olleCurve = (() => { const pts = []; for (let deg = -180; deg < 180; deg += 4) { const [x, z] = coast(deg, 0.78); pts.push(new THREE.Vector3(x, gy(x, z, 0.1) + 0.14, z)); } return new THREE.CatmullRomCurve3(pts, true, 'catmullrom', 0.3); })();
+layerGroups.olle.add(new THREE.Mesh(new THREE.TubeGeometry(olleCurve, 360, 0.07, 6, true), new THREE.MeshBasicMaterial({ color: 0xff5d8f })));
+const olleBeads = Array.from({ length: 10 }, (_, i) => { const m = new THREE.Mesh(new THREE.SphereGeometry(0.16, 10, 8), new THREE.MeshBasicMaterial({ color: 0xffffff })); layerGroups.olle.add(m); return m; });
+// 오름 분화구 표시 링 + 일반 숲 (항상 보임)
+{
+  const forest = [];
+  for (let tries = 0; tries < 3000 && forest.length < 240; tries++) {
+    const x = (rnd() - 0.5) * 24, z = (rnd() - 0.5) * 16, h = H(x, z);
+    if (h < 0.45 || h > 2.7 || POIS.some(o => o.p && Math.hypot(o.p[0] - x, o.p[1] - z) < (o.r || 0.9) + (o.cat === 'orchard' ? 0.3 : 0))) continue; forest.push([x, z]);
+  }
+  const tr = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.04, 0.07, 0.35, 5), std(0x6b4a2f), forest.length), cr = new THREE.InstancedMesh(new THREE.ConeGeometry(0.28, 0.7, 6), std(0x3f8a3a), forest.length), d = new THREE.Object3D();
+  forest.forEach(([x, z], i) => { const y = H(x, z), s = 0.7 + rnd() * 0.7; d.scale.setScalar(s); d.position.set(x, y + 0.17 * s, z); d.updateMatrix(); tr.setMatrixAt(i, d.matrix); d.position.set(x, y + 0.6 * s, z); d.updateMatrix(); cr.setMatrixAt(i, d.matrix); });
+  scene.add(tr, cr);
+}
+// 우도 도항선 + 바다를 도는 요트
+const ferry = boat(0xffffff, 1.6); scene.add(ferry);
+const ferryCurve = new THREE.CatmullRomCurve3([new THREE.Vector3(9.4, 0, 1.0), new THREE.Vector3(11.6, 0, -0.6), new THREE.Vector3(13.0, 0, -2.2)]);
+const yacht = boat(0xff8fb8, 1.5); scene.add(yacht);
+// 구름
+const clouds = [];
+for (let i = 0; i < 6; i++) { const c = new THREE.Group(), m = std(0xffffff, { roughness: 1, emissive: 0xffffff, emissiveIntensity: 0.25 });
+  [[0, 0, 0, 1], [0.9, -0.1, 0.2, 0.75], [-0.9, -0.1, -0.1, 0.7]].forEach(([x, y, z, s]) => { const p = new THREE.Mesh(new THREE.IcosahedronGeometry(s, 1), m); p.position.set(x, y, z); c.add(p); });
+  c.position.set(-30 + i * 11, 11 + (i % 3) * 1.5, -8 + (i * 7) % 18); c.userData.v = 0.4 + (i % 3) * 0.2; scene.add(c); clouds.push(c); }
+
+/* =========================================================
+   마커 (스프라이트)
+   ========================================================= */
+function iconSprite(emoji, color) {
+  const cv = document.createElement('canvas'); cv.width = cv.height = 128; const g = cv.getContext('2d');
+  g.fillStyle = '#fff'; g.beginPath(); g.arc(64, 64, 60, 0, 7); g.fill(); g.fillStyle = color; g.beginPath(); g.arc(64, 64, 52, 0, 7); g.fill();
+  g.font = '58px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(emoji, 64, 70);
+  const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace;
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, depthTest: false })); s.scale.set(1.15, 1.15, 1); s.renderOrder = 20; return s;
+}
+function nameSprite(text) {
+  const cv = document.createElement('canvas'), g = cv.getContext('2d'); g.font = "44px Jua, 'Noto Sans KR', sans-serif"; const w = Math.ceil(g.measureText(text).width) + 44;
+  cv.width = w; cv.height = 76; g.font = "44px Jua, 'Noto Sans KR', sans-serif"; g.fillStyle = 'rgba(255,255,255,.95)'; g.beginPath(); g.roundRect(0, 0, w, 76, 30); g.fill(); g.fillStyle = '#4a2f1f'; g.textBaseline = 'middle'; g.fillText(text, 22, 40);
+  const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace;
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, depthTest: false })); s.scale.set(w / 76 * 0.62, 0.62, 1); s.renderOrder = 21; return s;
+}
+const stemMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.7 });
+const iconList = [];
+POIS.forEach((o, i) => {
+  const cat = CATS[o.cat], lift = o.lift ?? (o.cat === 'orchard' ? 1.4 : o.cat === 'olle' ? 1.1 : 1.6) + (o.cat === 'wind' ? 1.2 : o.cat === 'light' ? 1.2 : o.cat === 'statue' ? 0.9 : 0);
+  o.top = o.y + lift;
+  const icon = iconSprite(cat.icon, cat.color); icon.position.set(o.p[0], o.top, o.p[1]); icon.userData.poi = i;
+  const lab = nameSprite(o.name); lab.position.set(o.p[0], o.top + 0.85, o.p[1]);
+  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, lift, 5), stemMat); stem.position.set(o.p[0], o.y + lift / 2, o.p[1]);
+  scene.add(icon, lab, stem); o.icon = icon; o.lab = lab; o.stem = stem; iconList.push(icon);
+});
+
+/* =========================================================
+   UI · 카메라 · 투어
+   ========================================================= */
+const HOME_T = new THREE.Vector3(0, 0.8, 1.5), HOME_OFF = new THREE.Vector3(0, 17, 25);
+let farK = 1; const homePos = new THREE.Vector3();
+function updateHome() { farK = clamp(1.3 / camera.aspect, 1, 2.4); homePos.copy(HOME_T).addScaledVector(HOME_OFF, farK); }
+updateHome(); camera.position.copy(homePos); controls.target.copy(HOME_T);
+
+const state = { sel: -1, tour: false, tourT: 0, tourI: 0, vis: Object.fromEntries(Object.keys(CATS).map(k => [k, true])) };
+let camGoal = null;
+const TOUR = ['hallasan', 'seongsan', 'olle1', 'udo', 'light-udo', 'geomun', 'wind-gasiri', 'orchard-b', 'statue-seongeup', 'seogwipo-port', 'cheonjiyeon', 'jusangjeolli', 'sanbang', 'wind-hankyung', 'jeju-port', 'light-dodu', 'statue-airport', 'mara'];
+
+function renderUI() {
+  $('chips').innerHTML = Object.entries(CATS).map(([k, c]) => `<button class="chip ${state.vis[k] ? '' : 'off'}" data-k="${k}" style="--c:${c.color}"><i></i>${c.icon} ${c.name}<em>${POIS.filter(o => o.cat === k).length}</em></button>`).join('');
+  $('chips').querySelectorAll('.chip').forEach(b => b.onclick = () => { const k = b.dataset.k; state.vis[k] = !state.vis[k]; applyVis(); renderUI(); });
+  $('list').innerHTML = Object.entries(CATS).filter(([k]) => state.vis[k]).map(([k, c]) => `<div class="grp">${c.icon} ${c.name}</div>` + POIS.map((o, i) => o.cat === k ? `<button class="item ${state.sel === i ? 'sel' : ''}" data-i="${i}">${o.name}</button>` : '').join('')).join('');
+  $('list').querySelectorAll('.item').forEach(b => b.onclick = () => { stopTour(); select(+b.dataset.i); });
+}
+function applyVis() {
+  for (const k in CATS) layerGroups[k].visible = state.vis[k];
+  POIS.forEach((o, i) => { const v = state.vis[o.cat]; o.icon.visible = v; o.stem.visible = v; o.lab.visible = v && labelShown(o, i); });
+  if (state.sel >= 0 && !state.vis[POIS[state.sel].cat]) closeCard();
+}
+const labelShown = (o, i) => i === state.sel || camera.position.distanceTo(o.icon.position) < 17;
+
+function select(i, fly = true) {
+  state.sel = i; const o = POIS[i], c = CATS[o.cat];
+  $('card').classList.add('on'); $('card').style.setProperty('--c', c.color); $('cTag').textContent = `${c.icon} ${c.name}`; $('cName').textContent = o.name; $('cDesc').textContent = o.desc;
+  if (fly) { const t = new THREE.Vector3(o.p[0], o.y + 0.6, o.p[1]); camGoal = { tgt: t, pos: t.clone().add(new THREE.Vector3(3, 5, 8.5).multiplyScalar(Math.min(farK, 1.7))) }; }
+  renderUI();
+}
+function closeCard() { state.sel = -1; $('card').classList.remove('on'); renderUI(); }
+function goHome() { stopTour(); closeCard(); camGoal = { tgt: HOME_T.clone(), pos: homePos.clone() }; }
+function stepSel(d) { const vis = POIS.map((o, i) => i).filter(i => state.vis[POIS[i].cat]); if (!vis.length) return; const cur = vis.indexOf(state.sel); select(vis[(cur + d + vis.length * 2) % vis.length]); }
+function stopTour() { state.tour = false; $('tour').textContent = '🎬 자동 투어'; }
+function startTour() { state.tour = true; state.tourI = 0; state.tourT = 99; $('tour').textContent = '⏸ 투어 멈춤'; Object.keys(CATS).forEach(k => state.vis[k] = true); applyVis(); renderUI(); }
+$('tour').onclick = () => state.tour ? stopTour() : startTour();
+$('home').onclick = goHome; $('cClose').onclick = () => { stopTour(); closeCard(); };
+$('prev').onclick = () => { stopTour(); stepSel(-1); }; $('next').onclick = () => { stopTour(); stepSel(1); };
+$('listBtn').onclick = () => $('listPanel').classList.toggle('on');
+controls.addEventListener('start', () => { camGoal = null; stopTour(); });
+
+// 시간대
+const TOD = {
+  day: { top: 0x3f9cf0, bot: 0xcfeaf5, hemi: 2.1, sun: 0xfff1d6, sunI: 2.2, sea: 0x59c3e0, beam: 0.05, stars: 0, lamp: 0.4 },
+  dusk: { top: 0x6a4fb8, bot: 0xffb08a, hemi: 1.5, sun: 0xff9a5a, sunI: 2.0, sea: 0x4a7fb5, beam: 0.45, stars: 0.15, lamp: 1.2 },
+  night: { top: 0x070d2e, bot: 0x2b3a74, hemi: 0.6, sun: 0x8fa8ff, sunI: 0.7, sea: 0x1d4a78, beam: 0.95, stars: 1, lamp: 2.2 }
+};
+let todTarget = 'day'; const cur = { hemi: 2.1, sunI: 2.2, beam: 0.05, stars: 0, lamp: 0.4 }, tmp = new THREE.Color();
+document.querySelectorAll('#tod button').forEach(b => b.onclick = () => { todTarget = b.dataset.t; document.querySelectorAll('#tod button').forEach(x => x.classList.toggle('on', x === b)); });
+function updateTOD(dt) {
+  const T = TOD[todTarget], k = 1 - Math.exp(-dt * 2.5);
+  skyU.top.value.lerp(tmp.set(T.top), k); skyU.bot.value.lerp(tmp.set(T.bot), k);
+  scene.background.copy(skyU.bot.value); scene.fog.color.copy(skyU.bot.value);
+  sun.color.lerp(tmp.set(T.sun), k); seaMat.color.lerp(tmp.set(T.sea), k);
+  for (const key of ['hemi', 'sunI', 'beam', 'stars', 'lamp']) cur[key] = lerp(cur[key], T[key], k);
+  hemi.intensity = cur.hemi; sun.intensity = cur.sunI; stars.material.opacity = cur.stars;
+  beams.forEach(g => { g.userData.mat.opacity = cur.beam; g.userData.lamp.material.emissiveIntensity = cur.lamp; });
+  dome.position.copy(camera.position);
+}
+
+/* 마우스 */
+const ray = new THREE.Raycaster(), mouse = new THREE.Vector2(); let down = null;
+const pickAt = ev => { mouse.set(ev.clientX / innerWidth * 2 - 1, -(ev.clientY / innerHeight) * 2 + 1); ray.setFromCamera(mouse, camera); const hits = ray.intersectObjects(iconList.filter(s => s.visible), false); return hits.length ? hits[0].object.userData.poi : -1; };
+renderer.domElement.addEventListener('pointermove', ev => { const i = pickAt(ev), tip = $('tip'); renderer.domElement.style.cursor = i >= 0 ? 'pointer' : 'grab'; if (i < 0) { tip.style.display = 'none'; return; } tip.style.display = 'block'; tip.style.left = ev.clientX + 14 + 'px'; tip.style.top = ev.clientY + 12 + 'px'; tip.textContent = `${CATS[POIS[i].cat].icon} ${POIS[i].name}`; });
+renderer.domElement.addEventListener('pointerdown', ev => { down = [ev.clientX, ev.clientY]; });
+renderer.domElement.addEventListener('pointerup', ev => { if (!down) return; const mv = Math.hypot(ev.clientX - down[0], ev.clientY - down[1]); down = null; if (mv < 6) { const i = pickAt(ev); if (i >= 0) { stopTour(); select(i); } } });
+addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); updateHome(); if (state.sel < 0 && !camGoal) camGoal = { tgt: HOME_T.clone(), pos: homePos.clone() }; });
+
+/* =========================================================
+   루프
+   ========================================================= */
+const clock = new THREE.Clock(), up = new THREE.Vector3(0, 1, 0), tv = new THREE.Vector3();
+function frame() {
+  const dt = Math.min(clock.getDelta(), 0.05), t = clock.elapsedTime, k = 1 - Math.exp(-dt * 4);
+  turbines.forEach(w => { w.userData.rotor.rotation.z -= dt * w.userData.speed; });
+  beams.forEach(g => { g.userData.pivot.rotation.y += dt * 1.1; });
+  boats.forEach(b => { b.position.y = -0.02 + Math.sin(t * 1.6 + b.userData.ph) * 0.03; b.rotation.z = Math.sin(t * 1.3 + b.userData.ph) * 0.05; });
+  { const u = (Math.sin(t * 0.18) + 1) / 2; ferryCurve.getPointAt(u, tv); ferry.position.set(tv.x, -0.02 + Math.sin(t * 2) * 0.03, tv.z); ferryCurve.getTangentAt(u, tv); ferry.rotation.y = Math.atan2(-tv.z, tv.x) + (Math.cos(t * 0.18) < 0 ? Math.PI : 0); }
+  { const a = t * 0.05; yacht.position.set(Math.cos(a) * 15, -0.02, Math.sin(a) * 11.5); yacht.rotation.y = -a - Math.PI / 2; }
+  olleBeads.forEach((m, i) => { olleCurve.getPointAt((t * 0.02 + i / olleBeads.length) % 1, m.position); m.position.y += 0.1; m.scale.setScalar(0.8 + Math.sin(t * 5 + i) * 0.25); });
+  clouds.forEach(c => { c.position.x += c.userData.v * dt; if (c.position.x > 34) c.position.x = -34; });
+  POIS.forEach((o, i) => { if (!state.vis[o.cat]) return; const s = state.sel === i, bob = Math.sin(t * 2 + i) * 0.08; o.icon.position.y = o.top + bob; o.lab.position.y = o.top + 0.85 + bob; o.icon.scale.setScalar(s ? 1.5 + Math.sin(t * 6) * 0.08 : 1.15); o.lab.visible = labelShown(o, i); });
+  if (state.tour) { state.tourT += dt; if (state.tourT > 6) { state.tourT = 0; const id = TOUR[state.tourI++ % TOUR.length], i = POIS.findIndex(o => o.id === id); if (i >= 0) select(i); } }
+  if (camGoal) { camera.position.lerp(camGoal.pos, k * 0.7); controls.target.lerp(camGoal.tgt, k * 0.7); if (camera.position.distanceTo(camGoal.pos) < 0.05) camGoal = null; }
+  const p = seaGeo.attributes.position; for (let i = 0; i < p.count; i++) p.setY(i, Math.sin(seaBase[i * 3] * 0.7 + t * 1.4) * 0.05 + Math.cos(seaBase[i * 3 + 2] * 0.9 + t * 1.1) * 0.04); p.needsUpdate = true;
+  updateTOD(dt); controls.update(); renderer.render(scene, camera); requestAnimationFrame(frame);
+}
+await Promise.all([document.fonts.load('40px Jua', '가나다'), document.fonts.load('40px "Noto Sans KR"', '가나다')]).catch(() => {});
+POIS.forEach(o => { const l = nameSprite(o.name); o.lab.material.map = l.material.map; o.lab.scale.copy(l.scale); });
+applyVis(); renderUI(); frame();
+window.__ex = { POIS, state, select, startTour, goHome, camera };
+</script>
+</body>
+</html>

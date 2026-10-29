@@ -7,6 +7,8 @@ import Home from './pages/Home.jsx';
 import Characters from './pages/Characters.jsx';
 import Play from './pages/Play.jsx';
 import Game from './pages/Game.jsx';
+import Stats from './pages/Stats.jsx';
+import Explore from './pages/Explore.jsx';
 import Shop from './pages/Shop.jsx';
 import Cart from './pages/Cart.jsx';
 import Login from './pages/Login.jsx';
@@ -24,7 +26,7 @@ function ScrollToTop() {
 
 export default function App() {
   const { pathname } = useLocation();
-  const immersive = pathname.startsWith('/play/'); // 게임 화면은 푸터 없이 꽉 차게
+  const immersive = pathname.startsWith('/play/') || pathname === '/stats' || pathname === '/explore'; // 게임·3D 화면은 푸터 없이 꽉 차게
 
   return (
     <div className="app">
@@ -36,6 +38,8 @@ export default function App() {
           <Route path="/characters" element={<Characters />} />
           <Route path="/play" element={<Play />} />
           <Route path="/play/:id" element={<ProtectedRoute><Game /></ProtectedRoute>} />
+          <Route path="/explore" element={<Explore />} />
+          <Route path="/stats" element={<Stats />} />
           <Route path="/shop" element={<Shop />} />
           <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
           <Route path="/login" element={<Login />} />

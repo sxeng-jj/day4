@@ -54,6 +54,26 @@ export default function Home() {
         </div>
       </section>
 
+      <section className="section">
+        <Link to="/explore" className="stats-banner explore-banner">
+          <span className="ficon">🏝️</span>
+          <div>
+            <h3>제주 3D 탐험</h3>
+            <p>한라산·오름·올레길·항구·감귤밭·풍력발전기·등대·돌하르방을 돌려 보고 확대하며 둘러보세요.</p>
+          </div>
+          <b>탐험 시작 →</b>
+        </Link>
+        <div style={{ height: 16 }} />
+        <Link to="/stats" className="stats-banner">
+          <span className="ficon">📊</span>
+          <div>
+            <h3>서귀포 관광지 관람객, 3D로 보기</h3>
+            <p>천지연폭포·정방폭포·주상절리대… 실제 관람객 수를 제주 미니어처 위의 기둥으로 만나 보세요.</p>
+          </div>
+          <b>보러 가기 →</b>
+        </Link>
+      </section>
+
       <section className="section alt">
         <h2 className="title">제주의 풍경</h2>
         <p className="lead">감귤이가 사는 제주의 모습이에요.</p>

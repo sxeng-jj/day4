@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>서귀포 관광지 관람객 3D</title>
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root { --orange:#ff8a1f; --brown:#4a2f1f; --line:#eadcc8; }
+  * { box-sizing: border-box; user-select: none; }
+  html, body { margin: 0; height: 100%; overflow: hidden; font-family: 'Noto Sans KR', system-ui, sans-serif; color: var(--brown);
+    background: linear-gradient(180deg, #a9dcff 0%, #def2ff 55%, #fff1d6 100%); }
+  canvas { position: fixed; inset: 0; display: block; }
+  .panel { position: fixed; z-index: 5; background: rgba(255,255,255,.92); border-radius: 18px; box-shadow: 0 6px 20px rgba(74,47,31,.18); padding: 14px 16px; backdrop-filter: blur(6px); }
+  h1 { font: 400 22px 'Jua', sans-serif; margin: 0; }
+  #head { left: 14px; top: 12px; max-width: min(520px, calc(100vw - 28px)); }
+  #head p { margin: 2px 0 0; font-size: 12px; color: #7a6a5f; }
+  .badge { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 999px; margin-left: 8px; vertical-align: middle; }
+  .badge.real { background: #e6f7ec; color: #1e7a45; } .badge.demo { background: #fff3cd; color: #7a5b00; }
+  #rank { left: 14px; top: 92px; width: 250px; }
+  #rank h2, #detail h2 { font: 400 17px 'Jua', sans-serif; margin: 0 0 8px; }
+  .rrow { display: grid; grid-template-columns: 22px 1fr; gap: 2px 8px; align-items: center; padding: 5px 4px; border-radius: 10px; cursor: pointer; }
+  .rrow:hover, .rrow.sel { background: #fff1d6; }
+  .rrow b { font: 400 16px 'Jua'; color: #ff8a1f; text-align: center; grid-row: span 2; }
+  .rname { font-size: 13px; font-weight: 700; display: flex; justify-content: space-between; gap: 6px; }
+  .rname span { font-weight: 400; color: #7a6a5f; font-variant-numeric: tabular-nums; }
+  .rbar { height: 7px; border-radius: 6px; background: #f0e6d6; overflow: hidden; } .rbar i { display: block; height: 100%; width: 0; border-radius: 6px; transition: width .4s; }
+  #detail { right: 14px; top: 12px; width: 300px; display: none; }
+  #detail.on { display: block; }
+  #detail .big { font: 400 30px 'Jua', sans-serif; color: var(--orange); line-height: 1.1; } #detail .big small { font: 700 13px 'Noto Sans KR'; color: #7a6a5f; margin-left: 4px; }
+  #detail .sub { font-size: 12px; color: #7a6a5f; margin: 2px 0 8px; }
+  #chart { width: 100%; height: 130px; }
+  .legend { display: flex; gap: 12px; font-size: 11px; color: #7a6a5f; margin-top: 4px; } .legend i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 4px; }
+  #close { position: absolute; right: 10px; top: 8px; border: 0; background: transparent; font-size: 18px; cursor: pointer; color: #7a6a5f; }
+  #ctrl { left: 50%; transform: translateX(-50%); bottom: 14px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; justify-content: center; width: min(900px, calc(100vw - 20px)); }
+  #ctrl label { font-size: 12px; font-weight: 700; display: grid; gap: 2px; }
+  select, button { font: 700 14px 'Noto Sans KR', sans-serif; color: var(--brown); }
+  select { border: 2px solid var(--line); border-radius: 10px; padding: 5px 8px; background: #fff; }
+  #month { width: 150px; accent-color: #ff8a1f; }
+  .seg { display: inline-flex; border: 2px solid var(--line); border-radius: 999px; overflow: hidden; }
+  .seg button { border: 0; background: #fff; padding: 6px 14px; cursor: pointer; } .seg button.on { background: var(--orange); color: #fff; }
+  .btn { border: 0; cursor: pointer; background: linear-gradient(#ffa83d, #e8741a); color: #fff; padding: 8px 18px; border-radius: 999px; box-shadow: 0 3px 0 #b8520e; }
+  .btn.ghost { background: #fff; color: var(--brown); box-shadow: 0 0 0 2px var(--line); }
+  #when { font: 400 22px 'Jua', sans-serif; min-width: 120px; text-align: center; }
+  #tip { position: fixed; z-index: 9; pointer-events: none; background: var(--brown); color: #fff; padding: 6px 12px; border-radius: 10px; font-size: 13px; font-weight: 700; display: none; white-space: nowrap; }
+  #msg { position: fixed; z-index: 8; left: 50%; top: 50%; transform: translate(-50%,-50%); background: #fff; padding: 18px 26px; border-radius: 18px; box-shadow: 0 8px 24px rgba(0,0,0,.2); font-weight: 700; text-align: center; max-width: 80vw; }
+  #msg small { display: block; font-weight: 400; color: #7a6a5f; margin-top: 6px; }
+  @media (max-width: 760px) {
+    #rank { display: none; }
+    #detail { top: 76px; right: 8px; width: min(300px, calc(100vw - 16px)); }
+    #head h1 { font-size: 18px; } #head p { display: none; } #month { width: 110px; }
+  }
+</style>
+</head>
+<body>
+<div id="head" class="panel"><h1>서귀포 직영관광지 관람객 3D<span id="badge" class="badge demo">불러오는 중…</span></h1><p>기둥이 높을수록 관람객이 많아요 · 드래그로 돌리고 기둥을 눌러 보세요</p></div>
+<div id="rank" class="panel"><h2 id="rankTitle">관람객 순위</h2><div id="rankList"></div></div>
+<div id="detail" class="panel"><button id="close" aria-label="닫기">✕</button><h2 id="dName"></h2><div class="big" id="dVal"></div><div class="sub" id="dSub"></div><svg id="chart" viewBox="0 0 280 130"></svg><div class="legend"><span><i style="background:#ff8a1f"></i><b id="lgCur"></b></span><span><i style="background:#b9b0a5"></i><b id="lgPrev"></b></span></div></div>
+<div id="ctrl" class="panel">
+  <label>연도<select id="year"></select></label>
+  <label>월 <input id="month" type="range" min="1" max="12" step="1" value="1"></label>
+  <div id="when">-</div>
+  <div class="seg"><button id="mMonth" class="on">그 달</button><button id="mCum">누적</button></div>
+  <button class="btn" id="play">▶ 재생</button>
+  <button class="btn ghost" id="reset">전체 보기</button>
+</div>
+<div id="tip"></div>
+<div id="msg">데이터를 불러오는 중…</div>
+
+<script type="importmap">
+{ "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const $ = id => document.getElementById(id);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const fmt = n => Number(n).toLocaleString('ko-KR');
+
+/* ---------- 관광지 (데이터 컬럼명 = key) ---------- */
+const SPOTS = [
+  { key: '천지연폭포', name: '천지연폭포', pos: [-0.4, 5.0], color: 0x2f9bff },
+  { key: '정방폭포', name: '정방폭포', pos: [1.5, 5.3], color: 0x2ec4b6 },
+  { key: '천제연폭포', name: '천제연폭포', pos: [-3.4, 4.5], color: 0x7a5cff },
+  { key: '중문대포 주상절리대', name: '중문대포 주상절리대', pos: [-5.1, 4.3], color: 0xff6b6b },
+  { key: '산방산_용머리', name: '산방산·용머리', pos: [-7.2, 3.0], color: 0xf2b705 },
+  { key: '감귤박물관', name: '감귤박물관', pos: [3.8, 4.8], color: 0xff8a1f }
+];
+
+/* ---------- 데이터 ---------- */
+let rows = [], isDemo = false;
+function normalize(raw) {
+  const num = x => { if (x === null || x === undefined || x === '') return null; const n = Number(String(x).replace(/,/g, '')); return Number.isFinite(n) ? n : null; };
+  return raw.map(r => ({ y: Number(r['기준연도']), m: Number(r['기준월']), v: Object.fromEntries(SPOTS.map(s => [s.key, num(r[s.key])])) }))
+    .filter(r => r.y && r.m).sort((a, b) => a.y - b.y || a.m - b.m);
+}
+function demoRows() {
+  const base = { '천지연폭포': 60000, '정방폭포': 45000, '천제연폭포': 35000, '중문대포 주상절리대': 90000, '산방산_용머리': 70000, '감귤박물관': 20000 };
+  const season = [.7, .75, .9, 1.05, 1.1, 1, 1.2, 1.35, .95, 1.1, 1, .8], out = [];
+  for (let y = 2022; y <= 2025; y++) for (let m = 1; m <= 12; m++) {
+    if (y === 2025 && m > 8) continue;
+    const v = {}; SPOTS.forEach((s, i) => { v[s.key] = (y === 2023 && m === 2 && i === 2) ? null : Math.round(base[s.key] * season[m - 1] * (1 + (y - 2022) * 0.06) * (0.9 + Math.random() * 0.2)); });
+    out.push({ y, m, v });
+  }
+  return out;
+}
+async function load() {
+  const params = new URLSearchParams(location.search);
+  if (!params.has('demo')) {
+    try {
+      const r = await fetch('/api/visitors');
+      const j = await r.json();
+      if (r.ok && j.rows && j.rows.length) { rows = normalize(j.rows); if (rows.length) return; }
+      throw new Error(j.error || '데이터가 비어 있어요');
+    } catch (e) { console.warn('API 실패 → 샘플 데이터 사용:', e.message); load.err = e.message; }
+  }
+  isDemo = true; rows = demoRows();
+}
+const find = (y, m) => rows.find(r => r.y === y && r.m === m);
+const monthVal = (y, m, k) => find(y, m)?.v[k] ?? null;
+const cumVal = (y, m, k) => { let s = 0, any = false; for (let i = 1; i <= m; i++) { const v = monthVal(y, i, k); if (v != null) { s += v; any = true; } } return any ? s : null; };
+
+/* ---------- three.js 장면 ---------- */
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); renderer.setSize(innerWidth, innerHeight);
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.outputColorSpace = THREE.SRGBColorSpace;
+document.body.prepend(renderer.domElement);
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(42, innerWidth / innerHeight, 0.1, 200);
+const HOME = { pos: new THREE.Vector3(), tgt: new THREE.Vector3(-1.5, 1.2, 2.5) };
+const HOME_OFFSET = new THREE.Vector3(3, 10.3, 15.5);
+let farK = 1;   // 화면이 좁을수록(세로 화면) 카메라를 뒤로 물린다
+function updateHome() { farK = clamp(1.45 / camera.aspect, 1, 3.8); HOME.pos.copy(HOME.tgt).addScaledVector(HOME_OFFSET, farK); }
+updateHome(); camera.position.copy(HOME.pos);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.copy(HOME.tgt); controls.enableDamping = true; controls.minDistance = 5; controls.maxDistance = 40; controls.maxPolarAngle = 1.5;
+scene.add(new THREE.HemisphereLight(0xffffff, 0xffe2b8, 2.1));
+const sun = new THREE.DirectionalLight(0xfff1d6, 2.2); sun.position.set(8, 16, 10); scene.add(sun);
+
+const sstep = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+const noise = (x, z) => Math.sin(x * 1.7 + 1.3) * Math.cos(z * 1.9) * 0.5 + Math.sin(x * 0.7 + z * 1.1) * 0.5;
+const OREUM = [[-6, -2, 0.9, 1.1], [4, -3, 0.8, 1.0], [2.5, -4.2, 0.7, 0.9]];
+function H(x, z) {
+  const mask = 1 - sstep(0.55, 1.0, Math.hypot(x / 11, z / 7));
+  let h = -0.35 + 1.25 * Math.pow(mask, 0.8) + 0.1 * noise(x, z) * (0.2 + mask);
+  const r2 = (x + 1) ** 2 + (z - 0.5) ** 2;
+  h += 5.0 * mask * Math.exp(-r2 / 7.22) - 1.0 * Math.exp(-r2 / 0.5);
+  for (const [ox, oz, a, s] of OREUM) h += a * mask * Math.exp(-((x - ox) ** 2 + (z - oz) ** 2) / (2 * s * s));
+  const sr = Math.hypot(x - 9, z + 1.5);
+  return h + 1.4 * Math.exp(-sr * sr / 5.12) + 2.0 * Math.exp(-((sr - 1.2) ** 2) / 0.405);
+}
+const C = h => new THREE.Color(h);
+const cSand = C(0xeadcae), cSh = C(0x6dbfc0), cDeep = C(0x3f8fa5), cGA = C(0x8fc860), cGB = C(0x62a84a), cF = C(0x4a7d3c), cRock = C(0x7a736d), cBas = C(0x37373d);
+function colorAt(x, z, h, out) {
+  const n = noise(x * 2.3, z * 1.7) * 0.5 + 0.5;
+  if (h < 0.12) out.copy(cSand).lerp(cSh, sstep(0.05, -0.15, h)).lerp(cDeep, sstep(-0.15, -0.4, h));
+  else { out.copy(cGA).lerp(cGB, n); out.lerp(cF, sstep(1.8, 3.2, h) * 0.9); out.lerp(cRock, sstep(3.9, 4.5, h)); out.lerp(cSand, 1 - sstep(0.12, 0.3, h)); }
+  if (h > 0 && h < 0.45 && n > 0.62) out.lerp(cBas, 0.85 * sstep(0.62, 0.7, n));
+}
+const tg = new THREE.PlaneGeometry(30, 30, 90, 90).rotateX(-Math.PI / 2);
+{
+  const p = tg.attributes.position, col = new Float32Array(p.count * 3), c = new THREE.Color();
+  for (let i = 0; i < p.count; i++) { const x = p.getX(i), z = p.getZ(i), h = H(x, z); p.setY(i, h); colorAt(x, z, h, c); col.set([c.r, c.g, c.b], i * 3); }
+  tg.setAttribute('color', new THREE.BufferAttribute(col, 3)); tg.computeVertexNormals();
+}
+scene.add(new THREE.Mesh(tg, new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.95 })));
+const std = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, flatShading: true, roughness: 0.9, ...o });
+{ const f = new THREE.Mesh(new THREE.BoxGeometry(30, 3.2, 30), std(0x3a7f95)); f.position.y = -2.0; const s = new THREE.Mesh(new THREE.BoxGeometry(30.6, 0.7, 30.6), std(0x2e2b2e)); s.position.y = -3.95; scene.add(f, s); }
+const seaGeo = new THREE.PlaneGeometry(30, 30, 60, 60).rotateX(-Math.PI / 2);
+const sea = new THREE.Mesh(seaGeo, new THREE.MeshStandardMaterial({ color: 0x59c3e0, transparent: true, opacity: 0.72, roughness: 0.15, flatShading: true })); sea.position.y = -0.05; scene.add(sea);
+const seaBase = Float32Array.from(seaGeo.attributes.position.array);
+
+/* ---------- 라벨 스프라이트 ---------- */
+function labelSprite() {
+  const cv = document.createElement('canvas'); cv.width = 512; cv.height = 176;
+  const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false })); sp.scale.set(3.2, 1.1, 1); sp.renderOrder = 10;
+  sp.userData.draw = (name, value, color, missing) => {
+    const g = cv.getContext('2d'); g.clearRect(0, 0, 512, 176);
+    g.fillStyle = 'rgba(255,255,255,.95)'; g.beginPath(); g.roundRect(8, 8, 496, 160, 36); g.fill();
+    g.fillStyle = '#' + color.toString(16).padStart(6, '0'); g.fillRect(24, 28, 12, 120);
+    g.font = "56px Jua, 'Noto Sans KR', sans-serif"; g.fillStyle = '#4a2f1f'; g.textBaseline = 'middle'; g.fillText(name, 52, 62);
+    g.font = "bold 50px 'Noto Sans KR', sans-serif"; g.fillStyle = missing ? '#a39a90' : '#e8741a'; g.fillText(missing ? '미집계' : fmt(value) + '명', 52, 124);
+    tex.needsUpdate = true;
+  };
+  return sp;
+}
+const bars = SPOTS.map((s, i) => {
+  const [x, z] = s.pos, y0 = Math.max(0, H(x, z));
+  const g = new THREE.Group(); g.position.set(x, y0, z); scene.add(g);
+  const mat = new THREE.MeshStandardMaterial({ color: s.color, roughness: 0.3, metalness: 0.1, emissive: s.color, emissiveIntensity: 0.25 });
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.36, 1, 24), mat); g.add(body);
+  const cap = new THREE.Mesh(new THREE.SphereGeometry(0.36, 20, 14), mat); g.add(cap);
+  const base = new THREE.Mesh(new THREE.RingGeometry(0.5, 0.66, 32).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: s.color, transparent: true, opacity: 0.8, side: THREE.DoubleSide })); base.position.y = 0.05; g.add(base);
+  const pin = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 1, 6), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.6 }));
+  const lb = labelSprite(); scene.add(lb);
+  body.userData.idx = i; cap.userData.idx = i;
+  return { s, g, body, cap, base, mat, lb, cur: 0, target: 0, shown: null, value: null, missing: false };
+});
+const pickables = bars.flatMap(b => [b.body, b.cap]);
+
+// 한라산 이름표
+{ const cv = document.createElement('canvas'); cv.width = 256; cv.height = 96; const g = cv.getContext('2d'); g.fillStyle = 'rgba(74,47,31,.85)'; g.beginPath(); g.roundRect(4, 4, 248, 88, 30); g.fill(); g.fillStyle = '#fff'; g.font = "46px Jua, 'Noto Sans KR', sans-serif"; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('⛰ 한라산', 128, 50);
+  const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, depthTest: false })); sp.scale.set(2.4, 0.9, 1); sp.position.set(-1, H(-1, 0.5) + 1.2, 0.5); sp.renderOrder = 10; scene.add(sp); }
+const bubbles = [];
+for (let i = 0; i < 22; i++) { const m = new THREE.Mesh(new THREE.SphereGeometry(0.08 + Math.random() * 0.18, 10, 8), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.35, depthWrite: false })); m.position.set((Math.random() - 0.5) * 34, Math.random() * 10, -8 - Math.random() * 12); m.userData.v = 0.2 + Math.random() * 0.4; scene.add(m); bubbles.push(m); }
+
+/* ---------- 상태 / UI ---------- */
+const S = { year: 0, month: 1, mode: 'month', sel: -1, playing: false };
+const MAXH = 6.5;
+let years = [], maxMonth = 1, maxCum = 1;
+
+function computeMax() {
+  maxMonth = 1; maxCum = 1;
+  for (const r of rows) for (const s of SPOTS) { const v = r.v[s.key]; if (v != null) maxMonth = Math.max(maxMonth, v); }
+  for (const y of years) for (const s of SPOTS) { const v = cumVal(y, 12, s.key); if (v != null) maxCum = Math.max(maxCum, v); }
+}
+const valueNow = (k) => S.mode === 'month' ? monthVal(S.year, S.month, k) : cumVal(S.year, S.month, k);
+
+function refresh() {
+  const max = S.mode === 'month' ? maxMonth : maxCum;
+  $('when').textContent = `${S.year}년 ${S.month}월`;
+  $('month').value = S.month; $('year').value = S.year;
+  $('rankTitle').textContent = S.mode === 'month' ? `${S.year}년 ${S.month}월 관람객` : `${S.year}년 1~${S.month}월 누적`;
+  bars.forEach(b => {
+    const v = valueNow(b.s.key); b.value = v; b.missing = v == null;
+    b.target = b.missing ? 0.12 : Math.max(0.12, v / max * MAXH);
+    if (b.shown !== (v ?? 'x')) { b.shown = v ?? 'x'; b.lb.userData.draw(b.s.name, v, b.s.color, b.missing); }
+    b.mat.color.set(b.missing ? 0xb9b0a5 : b.s.color); b.mat.emissive.set(b.missing ? 0x000000 : b.s.color);
+    b.mat.emissiveIntensity = b.missing ? 0 : 0.15 + 0.5 * (v / max);
+  });
+  const order = bars.map((b, i) => i).sort((a, c) => (bars[c].value ?? -1) - (bars[a].value ?? -1));
+  const top = Math.max(1, ...bars.map(b => b.value ?? 0));
+  $('rankList').innerHTML = order.map((i, n) => { const b = bars[i];
+    return `<div class="rrow ${S.sel === i ? 'sel' : ''}" data-i="${i}"><b>${n + 1}</b><div class="rname">${b.s.name}<span>${b.missing ? '미집계' : fmt(b.value)}</span></div><div class="rbar"><i style="width:${b.missing ? 0 : (b.value / top * 100)}%;background:#${b.s.color.toString(16).padStart(6, '0')}"></i></div></div>`; }).join('');
+  $('rankList').querySelectorAll('.rrow').forEach(el => el.onclick = () => select(+el.dataset.i));
+  if (S.sel >= 0) drawDetail();
+}
+
+function drawDetail() {
+  const b = bars[S.sel], k = b.s.key, col = '#' + b.s.color.toString(16).padStart(6, '0');
+  $('dName').textContent = b.s.name; $('dVal').innerHTML = b.missing ? '미집계' : `${fmt(b.value)}<small>명</small>`;
+  $('dSub').textContent = S.mode === 'month' ? `${S.year}년 ${S.month}월` : `${S.year}년 1~${S.month}월 누적`;
+  const cur = Array.from({ length: 12 }, (_, i) => monthVal(S.year, i + 1, k));
+  const prev = Array.from({ length: 12 }, (_, i) => monthVal(S.year - 1, i + 1, k));
+  const mx = Math.max(1, ...cur.filter(v => v != null), ...prev.filter(v => v != null));
+  const X = i => 28 + i * 22.2, Y = v => 108 - (v / mx) * 92;
+  const path = arr => { let d = '', pen = false; arr.forEach((v, i) => { if (v == null) { pen = false; return; } d += `${pen ? 'L' : 'M'}${X(i).toFixed(1)} ${Y(v).toFixed(1)} `; pen = true; }); return d; };
+  const dots = cur.map((v, i) => v == null ? '' : `<circle cx="${X(i)}" cy="${Y(v)}" r="${i + 1 === S.month ? 5 : 2.6}" fill="${col}"/>`).join('');
+  const ticks = [0, 2, 5, 8, 11].map(i => `<text x="${X(i)}" y="124" font-size="10" text-anchor="middle" fill="#7a6a5f">${i + 1}월</text>`).join('');
+  $('chart').innerHTML = `<line x1="28" y1="108" x2="272" y2="108" stroke="#eadcc8"/><text x="2" y="20" font-size="9" fill="#7a6a5f">${fmt(mx)}</text>`
+    + `<path d="${path(prev)}" fill="none" stroke="#b9b0a5" stroke-width="2" stroke-dasharray="4 3"/><path d="${path(cur)}" fill="none" stroke="${col}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>${dots}${ticks}`
+    + `<line x1="${X(S.month - 1)}" y1="14" x2="${X(S.month - 1)}" y2="108" stroke="${col}" stroke-opacity=".3" stroke-dasharray="3 3"/>`;
+  $('lgCur').textContent = `${S.year}년`; $('lgPrev').textContent = `${S.year - 1}년`;
+}
+
+let camGoal = null;
+function select(i) {
+  S.sel = i; $('detail').classList.add('on');
+  const [x, z] = bars[i].s.pos; const t = new THREE.Vector3(x, 1.6, z);
+  camGoal = { tgt: t, pos: t.clone().add(new THREE.Vector3(2.5, 5.5, 8).multiplyScalar(Math.min(farK, 1.8))) };
+  refresh();
+}
+function unselect() { S.sel = -1; $('detail').classList.remove('on'); camGoal = { tgt: HOME.tgt.clone(), pos: HOME.pos.clone() }; refresh(); }
+$('close').onclick = unselect; $('reset').onclick = unselect;
+controls.addEventListener('start', () => { camGoal = null; });
+
+function setupUI() {
+  years = [...new Set(rows.map(r => r.y))].sort((a, b) => a - b);
+  $('year').innerHTML = years.map(y => `<option value="${y}">${y}년</option>`).join('');
+  const last = rows[rows.length - 1]; S.year = last.y; S.month = last.m;
+  computeMax();
+  $('year').onchange = e => { S.year = +e.target.value; refresh(); };
+  $('month').oninput = e => { S.month = +e.target.value; refresh(); };
+  $('mMonth').onclick = () => { S.mode = 'month'; $('mMonth').classList.add('on'); $('mCum').classList.remove('on'); refresh(); };
+  $('mCum').onclick = () => { S.mode = 'cum'; $('mCum').classList.add('on'); $('mMonth').classList.remove('on'); refresh(); };
+  $('play').onclick = () => {
+    S.playing = !S.playing; $('play').textContent = S.playing ? '⏸ 멈춤' : '▶ 재생';
+    if (S.playing) { S.year = years[0]; S.month = 1; refresh(); }
+  };
+  const b = $('badge'); b.textContent = isDemo ? '샘플 데이터' : '실제 데이터'; b.className = 'badge ' + (isDemo ? 'demo' : 'real');
+  $('msg').style.display = 'none';
+  if (isDemo) { const m = $('msg'); m.innerHTML = `샘플 데이터로 표시 중이에요<small>${load.err ? '실제 API 연결 실패: ' + load.err : '?demo 모드'}</small>`; m.style.display = 'block'; setTimeout(() => m.style.display = 'none', 4500); }
+  refresh();
+}
+
+let playT = 0;
+function stepPlay(dt) {
+  if (!S.playing) return; playT += dt;
+  if (playT < 1.1) return; playT = 0;
+  const lastRow = rows[rows.length - 1];
+  if (S.year === lastRow.y && S.month >= lastRow.m) { S.playing = false; $('play').textContent = '▶ 재생'; return; }
+  S.month++; if (S.month > 12) { S.month = 1; S.year++; }
+  refresh();
+}
+
+/* ---------- 상호작용 (hover / click) ---------- */
+const ray = new THREE.Raycaster(), mouse = new THREE.Vector2(); let downAt = null;
+function pickAt(ev) {
+  mouse.set(ev.clientX / innerWidth * 2 - 1, -(ev.clientY / innerHeight) * 2 + 1); ray.setFromCamera(mouse, camera);
+  const hit = ray.intersectObjects(pickables, false)[0]; return hit ? hit.object.userData.idx : -1;
+}
+renderer.domElement.addEventListener('pointermove', ev => {
+  const i = pickAt(ev), tip = $('tip');
+  renderer.domElement.style.cursor = i >= 0 ? 'pointer' : 'grab';
+  if (i < 0) { tip.style.display = 'none'; return; }
+  const b = bars[i]; tip.style.display = 'block'; tip.style.left = ev.clientX + 14 + 'px'; tip.style.top = ev.clientY + 12 + 'px';
+  tip.textContent = `${b.s.name} · ${b.missing ? '미집계' : fmt(b.value) + '명'}`;
+});
+renderer.domElement.addEventListener('pointerdown', ev => { downAt = [ev.clientX, ev.clientY]; });
+renderer.domElement.addEventListener('pointerup', ev => { if (!downAt) return; const moved = Math.hypot(ev.clientX - downAt[0], ev.clientY - downAt[1]); downAt = null; if (moved < 6) { const i = pickAt(ev); if (i >= 0) select(i); } });
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight);
+  updateHome(); if (S.sel < 0) camGoal = { tgt: HOME.tgt.clone(), pos: HOME.pos.clone() };
+});
+
+/* ---------- 루프 ---------- */
+const clock = new THREE.Clock();
+function frame() {
+  const dt = Math.min(clock.getDelta(), 0.05), t = clock.elapsedTime;
+  stepPlay(dt);
+  const k = 1 - Math.exp(-dt * 5);
+  bars.forEach((b, i) => {
+    b.cur += (b.target - b.cur) * k;
+    b.body.scale.y = Math.max(0.01, b.cur); b.body.position.y = b.cur / 2; b.cap.position.y = b.cur;
+    b.lb.position.set(b.g.position.x, b.g.position.y + b.cur + 1.15, b.g.position.z);
+    const sel = S.sel === i; b.base.scale.setScalar(1 + (sel ? 0.25 + Math.sin(t * 5) * 0.15 : 0)); b.base.material.opacity = sel ? 1 : 0.7;
+    b.lb.scale.setScalar(sel ? 1.12 : 1);
+  });
+  if (camGoal) { camera.position.lerp(camGoal.pos, k * 0.8); controls.target.lerp(camGoal.tgt, k * 0.8); if (camera.position.distanceTo(camGoal.pos) < 0.05) camGoal = null; }
+  const p = seaGeo.attributes.position; for (let i = 0; i < p.count; i++) p.setY(i, Math.sin(seaBase[i * 3] * 0.7 + t * 1.4) * 0.05 + Math.cos(seaBase[i * 3 + 2] * 0.9 + t * 1.1) * 0.04); p.needsUpdate = true;
+  bubbles.forEach(b => { b.position.y += b.userData.v * dt; if (b.position.y > 11) b.position.y = -3; });
+  controls.update(); renderer.render(scene, camera); requestAnimationFrame(frame);
+}
+
+await Promise.all([document.fonts.load('40px Jua', '가나다'), document.fonts.load('bold 40px "Noto Sans KR"', '가나다')]).catch(() => {});
+await load();
+setupUI();
+frame();
+window.__viz = { S, bars, select, rows: () => rows };
+</script>
+</body>
+</html>
