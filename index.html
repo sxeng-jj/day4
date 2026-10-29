@@ -3,25 +3,96 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Three.js Animation</title>
+<title>제주도 다이오라마</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
 <style>
-  html, body { margin: 0; height: 100%; overflow: hidden; background: #05060d; }
-  canvas { display: block; }
-  #space-btn {
-    position: fixed; right: 16px; top: 16px; padding: 10px 18px;
-    background: #141a33; color: #cfd6ff; border: 1px solid #2c3766; border-radius: 8px;
-    font: 14px system-ui, sans-serif; cursor: pointer; text-decoration: none;
+  :root {
+    --brown: #4a2f1f;
+    --orange: #e8962e;
+    --red: #d9534f;
+    --cream: #fffaf0;
   }
-  #space-btn:hover { background: #1e2750; }
-  #hint {
-    position: fixed; left: 16px; bottom: 12px; color: #8a93b8;
-    font: 13px/1.4 system-ui, sans-serif; pointer-events: none;
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; }
+  body {
+    background: linear-gradient(180deg, #9fd8ee 0%, #d6f0f0 55%, #ffe6bb 100%);
+    font-family: 'Noto Sans KR', system-ui, sans-serif; color: var(--brown);
   }
+  canvas { position: fixed; inset: 0; display: block; z-index: 0; }
+  #logo, #menu, #space, #cards { z-index: 2; }
+
+  /* 로고 / 메뉴 */
+  #logo {
+    position: fixed; left: 18px; top: 16px; display: flex; align-items: center; gap: 10px;
+    font-family: 'Jua', sans-serif; font-size: 22px; line-height: 1; pointer-events: none;
+  }
+  #logo i {
+    width: 34px; height: 34px; border-radius: 9px; border: 3px solid var(--orange);
+    background:
+      radial-gradient(circle, var(--orange) 2.2px, transparent 2.6px) 0 0 / 9px 9px;
+  }
+  #logo small { display: block; font: 700 10px 'Noto Sans KR'; letter-spacing: .18em; color: var(--red); margin-top: 3px; }
+  #menu {
+    position: fixed; right: 0; top: 16px; border: 0; cursor: pointer;
+    background: #fff; color: var(--brown); font: 700 13px 'Noto Sans KR'; letter-spacing: .1em;
+    padding: 14px 22px 14px 26px; border-radius: 30px 0 0 30px;
+    box-shadow: 0 4px 14px rgba(0,0,0,.12);
+  }
+  #menu:hover { background: var(--cream); }
+
+  /* 우주 보기 배지 */
+  #space {
+    position: fixed; left: 14px; bottom: 218px; background: var(--brown); color: #fff;
+    border-radius: 12px; padding: 10px 16px; text-decoration: none;
+    font: 700 14px 'Noto Sans KR'; box-shadow: 0 4px 14px rgba(0,0,0,.2);
+    transition: transform .2s;
+  }
+  #space small { display: block; font-size: 10px; font-weight: 400; opacity: .8; margin-top: 2px; }
+  #space:hover { transform: translateY(-2px); }
+
+  /* 카드 */
+  #cards {
+    position: fixed; left: 0; right: 0; bottom: 0; display: flex; gap: 14px;
+    padding: 12px 18px 20px; overflow-x: auto; scroll-snap-type: x mandatory;
+    transition: transform .4s ease; scrollbar-width: none;
+  }
+  #cards::-webkit-scrollbar { display: none; }
+  #cards.hidden { transform: translateY(115%); }
+  .card {
+    flex: 0 0 300px; scroll-snap-align: center; background: #fff; border-radius: 14px;
+    padding: 16px 18px; box-shadow: 0 6px 18px rgba(0,0,0,.12); cursor: pointer;
+    border: 3px solid transparent; transition: border-color .2s, transform .2s;
+  }
+  .card:hover { transform: translateY(-3px); }
+  .card.active { border-color: var(--orange); }
+  .card h2 { margin: 0; font: 400 22px 'Jua', sans-serif; color: var(--orange); }
+  .card .en { font: 700 10px 'Noto Sans KR'; color: var(--red); letter-spacing: .06em; margin: 2px 0 8px; }
+  .card p { margin: 0 0 12px; font-size: 13px; line-height: 1.55; min-height: 40px; }
+  .card .more {
+    display: flex; align-items: center; justify-content: space-between; border: 0; width: 100%;
+    background: var(--orange); color: #fff; font: 700 13px 'Noto Sans KR';
+    padding: 10px 18px; border-radius: 24px; cursor: pointer;
+  }
+  .card .more:after { content: '›'; font-size: 20px; line-height: 1; }
+  @media (max-width: 600px) { .card { flex-basis: 82vw; } #space { bottom: 212px; } }
+
+  /* 로딩 */
+  #loading {
+    position: fixed; inset: 0; display: grid; place-items: center; z-index: 10;
+    background: #ece0b8; color: #b5a98a; font: 700 14px 'Noto Sans KR'; letter-spacing: .3em;
+    transition: opacity .8s;
+  }
+  #loading.done { opacity: 0; pointer-events: none; }
 </style>
 </head>
 <body>
-<button id="space-btn" onclick="location.href='space.html'">🚀 우주 보기</button>
-<div id="hint">마우스 드래그: 회전 · 휠: 확대/축소</div>
+<div id="loading">LOADING</div>
+
+<div id="logo"><i></i><div>제주<small>JEJU DIORAMA</small></div></div>
+<button id="menu">MENU</button>
+<a id="space" href="space.html">🚀 우주 보기<small>우주선이 지나가는 태양계</small></a>
+<div id="cards"></div>
 
 <script type="importmap">
 {
@@ -35,97 +106,403 @@
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
-// --- 기본 설정 ---
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x05060d);
-scene.fog = new THREE.FogExp2(0x05060d, 0.035);
-
-const camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.1, 200);
-camera.position.set(0, 2, 12);
-
-const renderer = new THREE.WebGLRenderer({ antialias: true });
+// ---------- 렌더러 / 씬 (three.js keyframes 예제와 같은 구성) ----------
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.setSize(innerWidth, innerHeight);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.95;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.appendChild(renderer.domElement);
 
+const scene = new THREE.Scene();
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+
+const camera = new THREE.PerspectiveCamera(40, innerWidth / innerHeight, 0.1, 300);
+camera.position.set(50, 36, 56);
+
 const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 1, 0);
 controls.enableDamping = true;
-controls.autoRotate = true;
-controls.autoRotateSpeed = 0.6;
+controls.minDistance = 5;
+controls.maxDistance = 70;
+controls.maxPolarAngle = 1.45;
+controls.autoRotateSpeed = 0.7;
 
-// --- 중앙 토러스 노트 ---
-const knot = new THREE.Mesh(
-  new THREE.TorusKnotGeometry(2, 0.6, 220, 32),
-  new THREE.MeshStandardMaterial({ color: 0x6a7bff, metalness: 0.7, roughness: 0.25 })
-);
-scene.add(knot);
+const sun = new THREE.DirectionalLight(0xfff0d2, 2.4);
+sun.position.set(16, 26, 14);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -18, right: 18, top: 18, bottom: -18, near: 1, far: 70 });
+sun.shadow.bias = -0.0008;
+sun.shadow.normalBias = 0.05;
+scene.add(sun);
 
-// 와이어프레임 외곽
-const wire = new THREE.Mesh(
-  new THREE.IcosahedronGeometry(4.2, 1),
-  new THREE.MeshBasicMaterial({ color: 0x2a3566, wireframe: true, transparent: true, opacity: 0.5 })
-);
-scene.add(wire);
+// ---------- 유틸 ----------
+const mixers = [];
+function play(obj, tracks, duration, phase = 0) {
+  const mixer = new THREE.AnimationMixer(obj);
+  const action = mixer.clipAction(new THREE.AnimationClip('anim', duration, tracks));
+  action.play();
+  action.time = phase * duration;
+  mixers.push(mixer);
+}
+const sstep = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+const noise = (x, z) => Math.sin(x * 1.7 + 1.3) * Math.cos(z * 1.9) * 0.5 + Math.sin(x * 0.7 + z * 1.1) * 0.5;
+let seed = 12345;
+const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const std = (color, o = {}) => new THREE.MeshStandardMaterial({ color, flatShading: true, roughness: 0.85, ...o });
+function shadowed(obj) {
+  obj.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+  return obj;
+}
 
-// --- 궤도를 도는 구체들 ---
-const orbiters = [];
-const colors = [0xff5d8f, 0x4dffc3, 0xffd166, 0x6ad1ff, 0xc77dff];
-colors.forEach((c, i) => {
-  const m = new THREE.Mesh(
-    new THREE.SphereGeometry(0.28, 24, 24),
-    new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: 0.9 })
-  );
-  const light = new THREE.PointLight(c, 20, 14);
-  m.add(light);
-  scene.add(m);
-  orbiters.push({ mesh: m, radius: 5 + i * 0.7, speed: 0.5 + i * 0.13, tilt: i * 0.6, phase: i * 1.3 });
+// ---------- 지형 (제주 섬: 한라산 + 오름 + 성산일출봉) ----------
+const OREUM = [[-6, -2, 0.9, 1.1], [4, -3, 0.8, 1.0], [2.5, -4.2, 0.7, 0.9]];
+function H(x, z) {
+  const d = Math.hypot(x / 11, z / 7);
+  const mask = 1 - sstep(0.55, 1.0, d);
+  let h = -0.35 + 1.25 * Math.pow(mask, 0.8) + 0.1 * noise(x, z) * (0.2 + mask);
+  const r2 = (x + 1) ** 2 + (z - 0.5) ** 2;            // 한라산
+  h += 5.0 * mask * Math.exp(-r2 / (2 * 1.9 * 1.9));
+  h -= 1.0 * Math.exp(-r2 / (2 * 0.5 * 0.5));          // 백록담
+  for (const [ox, oz, a, s] of OREUM) h += a * mask * Math.exp(-((x - ox) ** 2 + (z - oz) ** 2) / (2 * s * s));
+  const sr = Math.hypot(x - 9, z + 1.5);               // 성산일출봉
+  h += 1.4 * Math.exp(-sr * sr / (2 * 1.6 * 1.6)) + 2.0 * Math.exp(-((sr - 1.2) ** 2) / (2 * 0.45 * 0.45));
+  return h;
+}
+
+const C = hex => new THREE.Color(hex);
+const cSand = C(0xeadcae), cShallow = C(0x6dbfc0), cDeep = C(0x3f8fa5);
+const cGrassA = C(0x8fc860), cGrassB = C(0x62a84a), cForest = C(0x4a7d3c), cRock = C(0x7a736d), cBasalt = C(0x37373d);
+function colorAt(x, z, h, out) {
+  const n = noise(x * 2.3, z * 1.7) * 0.5 + 0.5;
+  if (h < 0.12) {
+    out.copy(cSand).lerp(cShallow, sstep(0.05, -0.15, h)).lerp(cDeep, sstep(-0.15, -0.4, h));
+  } else {
+    out.copy(cGrassA).lerp(cGrassB, n);
+    out.lerp(cForest, sstep(1.8, 3.2, h) * 0.9);
+    out.lerp(cRock, sstep(3.9, 4.5, h));
+    out.lerp(cSand, 1 - sstep(0.12, 0.3, h));
+  }
+  if (h > 0 && h < 0.45 && n > 0.62) out.lerp(cBasalt, 0.85 * sstep(0.62, 0.7, n));   // 검은 현무암 해안
+}
+
+const terrainGeo = new THREE.PlaneGeometry(30, 30, 90, 90).rotateX(-Math.PI / 2);
+{
+  const p = terrainGeo.attributes.position, colors = new Float32Array(p.count * 3), c = new THREE.Color();
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i), z = p.getZ(i), h = H(x, z);
+    p.setY(i, h);
+    colorAt(x, z, h, c);
+    colors.set([c.r, c.g, c.b], i * 3);
+  }
+  terrainGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  terrainGeo.computeVertexNormals();
+}
+scene.add(shadowed(new THREE.Mesh(terrainGeo, std(0xffffff, { vertexColors: true, roughness: 0.95 }))));
+
+// 백록담
+const lake = new THREE.Mesh(new THREE.CircleGeometry(0.55, 24), std(0x4fb8e0, { roughness: 0.1, flatShading: false }));
+lake.rotation.x = -Math.PI / 2;
+lake.position.set(-1, H(-1, 0.5) + 0.07, 0.5);
+scene.add(lake);
+
+// ---------- 바다 + 받침대(다이오라마 슬랩) ----------
+const slab = new THREE.Mesh(new THREE.BoxGeometry(30.6, 0.7, 30.6), std(0x2e2b2e, { roughness: 1 }));
+slab.position.y = -3.95;
+const filler = new THREE.Mesh(new THREE.BoxGeometry(30, 3.2, 30), std(0x3a7f95, { roughness: 1 }));
+filler.position.y = -2.0;
+const skirtInvisible = new THREE.MeshBasicMaterial({ visible: false });
+const skirtSide = new THREE.MeshStandardMaterial({ color: 0x59c3e0, transparent: true, opacity: 0.75, roughness: 0.2 });
+const skirt = new THREE.Mesh(new THREE.BoxGeometry(30, 0.3, 30),
+  [skirtSide, skirtSide, skirtInvisible, skirtInvisible, skirtSide, skirtSide]);
+skirt.position.y = -0.2;
+scene.add(slab, filler, skirt);
+
+const seaGeo = new THREE.PlaneGeometry(30, 30, 60, 60).rotateX(-Math.PI / 2);
+const sea = new THREE.Mesh(seaGeo, new THREE.MeshStandardMaterial({
+  color: 0x59c3e0, transparent: true, opacity: 0.72, roughness: 0.15, flatShading: true
+}));
+sea.position.y = -0.05;
+sea.receiveShadow = true;
+scene.add(sea);
+const seaBase = Float32Array.from(seaGeo.attributes.position.array);
+
+// ---------- 오브젝트 ----------
+const place = (obj, x, z, dy = 0) => { obj.position.set(x, H(x, z) + dy, z); scene.add(obj); return obj; };
+
+// 감귤나무
+function tangerineTree() {
+  const g = new THREE.Group();
+  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.08, 0.4, 6), std(0x6b4a2f));
+  trunk.position.y = 0.2;
+  const crown = new THREE.Mesh(new THREE.IcosahedronGeometry(0.42, 1), std(0x4f9a3a));
+  crown.position.y = 0.62;
+  g.add(trunk, crown);
+  for (let i = 0; i < 6; i++) {
+    const f = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 8), std(0xff8a1f, { flatShading: false, roughness: 0.5 }));
+    const a = rnd() * 6.28, b = 0.3 + rnd() * 0.9;
+    f.position.set(Math.cos(a) * Math.sin(b) * 0.42, 0.62 + Math.cos(b) * 0.42, Math.sin(a) * Math.sin(b) * 0.42);
+    g.add(f);
+  }
+  g.rotation.y = rnd() * 6;
+  return shadowed(g);
+}
+{
+  const pts = [];
+  for (let tries = 0; tries < 200 && pts.length < 16; tries++) {
+    const x = -5 + (rnd() - 0.5) * 4.6, z = 3.4 + (rnd() - 0.5) * 3.2;
+    if (H(x, z) < 0.35 || pts.some(p => Math.hypot(p[0] - x, p[1] - z) < 0.85)) continue;
+    pts.push([x, z]);
+    place(tangerineTree(), x, z);
+  }
+}
+
+// 유채꽃밭
+{
+  const N = 900, d = new THREE.Object3D();
+  const stalks = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.012, 0.012, 0.22, 4), std(0x4f8f3a), N);
+  const flowers = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(0.065, 0), std(0xffd21f, { roughness: 0.6 }), N);
+  let n = 0;
+  for (let tries = 0; tries < 4000 && n < N; tries++) {
+    const x = 2.8 + rnd() * 3.4, z = 1.2 + rnd() * 3.2, h = H(x, z);
+    if (h < 0.25 || h > 1.3) continue;
+    d.rotation.set(0, 0, 0); d.scale.setScalar(1);
+    d.position.set(x, h + 0.1, z); d.updateMatrix(); stalks.setMatrixAt(n, d.matrix);
+    d.position.set(x, h + 0.24, z); d.scale.setScalar(0.8 + rnd() * 0.6); d.updateMatrix(); flowers.setMatrixAt(n, d.matrix);
+    n++;
+  }
+  stalks.count = flowers.count = n;
+  flowers.castShadow = true;
+  scene.add(stalks, flowers);
+}
+
+// 돌담
+for (let i = 0; i < 16; i++) {
+  const x = 2.7 + i * 0.22, z = 4.7 + Math.sin(i * 0.6) * 0.08;
+  if (H(x, z) < 0.1) continue;
+  const s = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.22 + rnd() * 0.08, 0.2), std(0x3b3a3e, { roughness: 1 }));
+  s.rotation.y = (rnd() - 0.5) * 0.5;
+  place(shadowed(s), x, z, 0.1);
+}
+
+// 돌하르방
+function dolHareubang() {
+  const g = new THREE.Group();
+  const stone = std(0x6e6c6a, { roughness: 1 });
+  const dark = std(0x1f1f22);
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.34, 0.8, 10), stone); body.position.y = 0.4;
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.3, 12, 10), stone); head.scale.set(1, 1.1, 1); head.position.y = 1.0;
+  const hat = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.3, 0.2, 10), stone); hat.position.y = 1.37;
+  const nose = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 8), stone); nose.position.set(0, 0.97, 0.3);
+  g.add(body, head, hat, nose);
+  for (const s of [-1, 1]) {
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.045, 8, 8), dark); eye.position.set(s * 0.12, 1.07, 0.26);
+    const arm = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.1, 0.3), stone);
+    arm.position.set(s * 0.1, 0.55, 0.3); arm.rotation.x = -0.3; arm.rotation.y = s * 0.3;
+    g.add(eye, arm);
+  }
+  g.scale.setScalar(0.85);
+  return shadowed(g);
+}
+place(dolHareubang(), 1.0, 3.9);
+place(dolHareubang(), 2.2, 3.9);
+
+// 풍력발전기 (돌고 있는 날개 = 키프레임 회전)
+function windmill(period, phase) {
+  const g = new THREE.Group();
+  const white = std(0xf6f6f2, { roughness: 0.5 });
+  const tower = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.1, 2.2, 8), white); tower.position.y = 1.1;
+  const nacelle = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.16, 0.34), white); nacelle.position.y = 2.2;
+  const rotor = new THREE.Group(); rotor.position.set(0, 2.2, 0.2);
+  const hub = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 8), white);
+  rotor.add(hub);
+  for (let i = 0; i < 3; i++) {
+    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.08, 1.0, 0.02).translate(0, 0.5, 0), white);
+    blade.rotation.z = i * Math.PI * 2 / 3;
+    rotor.add(blade);
+  }
+  g.add(tower, nacelle, rotor);
+  const times = [], vals = [], q = new THREE.Quaternion(), z = new THREE.Vector3(0, 0, 1);
+  for (let i = 0; i <= 8; i++) {
+    times.push(i * period / 8);
+    q.setFromAxisAngle(z, -i * Math.PI / 4);
+    vals.push(q.x, q.y, q.z, q.w);
+  }
+  play(rotor, [new THREE.QuaternionKeyframeTrack('.quaternion', times, vals)], period, phase);
+  return shadowed(g);
+}
+[[-8.2, -1.6], [-8.4, 1.0], [-7.6, 3.4]].forEach(([x, z], i) => place(windmill(4 + i * 1.3, i * 0.3), x, z));
+
+// ---------- 해녀의 배 (원형 경로 키프레임) ----------
+function frames(N, period, fn) {
+  const times = [], pos = [], quat = [];
+  const e = new THREE.Euler(), q = new THREE.Quaternion();
+  for (let i = 0; i <= N; i++) {
+    const { x, y, z, yaw, roll } = fn(i / N, i);
+    times.push(i / N * period);
+    pos.push(x, y, z);
+    q.setFromEuler(e.set(roll, yaw, 0, 'YXZ'));
+    quat.push(q.x, q.y, q.z, q.w);
+  }
+  return [new THREE.VectorKeyframeTrack('.position', times, pos), new THREE.QuaternionKeyframeTrack('.quaternion', times, quat)];
+}
+function ellipseFn(a, b, y, bob, bobCycles, rollAmp) {
+  return (u, i) => {
+    const f = u * Math.PI * 2;
+    const dx = -a * Math.sin(f), dz = b * Math.cos(f);
+    return {
+      x: a * Math.cos(f), z: b * Math.sin(f),
+      y: y + Math.sin(f * bobCycles) * bob,
+      yaw: Math.atan2(-dz, dx),
+      roll: Math.sin(f * bobCycles + 1) * rollAmp
+    };
+  };
+}
+
+const boat = new THREE.Group();
+{
+  const wood = std(0x9c6a3b), white = std(0xffffff, { side: THREE.DoubleSide, roughness: 0.6 });
+  const hull = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.3, 0.7), wood); hull.position.y = 0.1;
+  const bowGeo = new THREE.ConeGeometry(0.35, 0.6, 4).rotateZ(-Math.PI / 2).scale(1, 0.45, 1);
+  const bow = new THREE.Mesh(bowGeo, wood); bow.position.set(1.2, 0.1, 0);
+  const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 1.5, 6), std(0x5a3b22)); mast.position.set(0.1, 0.9, 0);
+  const shape = new THREE.Shape(); shape.moveTo(0, 0); shape.lineTo(0.9, 0); shape.lineTo(0, 1.2);
+  const sail = new THREE.Mesh(new THREE.ShapeGeometry(shape), white);
+  sail.rotation.y = Math.PI / 2; sail.position.set(0.1, 0.35, 0.02);
+  const buoy = new THREE.Mesh(new THREE.SphereGeometry(0.12, 10, 10), std(0xff7a1a, { flatShading: false }));
+  buoy.position.set(-1.1, 0.1, 0.2);
+  boat.add(hull, bow, mast, sail, buoy);
+  shadowed(boat);
+  scene.add(boat);
+  play(boat, frames(120, 70, ellipseFn(13, 9.2, 0.02, 0.04, 9, 0.05)), 70);
+}
+
+// 테왁(해녀 부표)
+[[7, 6.5], [-9.5, 5.5], [11.5, 2.5]].forEach(([x, z], i) => {
+  const t = new THREE.Group();
+  const ball = new THREE.Mesh(new THREE.SphereGeometry(0.22, 12, 10), std(0xff7a1a, { flatShading: false, roughness: 0.5 }));
+  const net = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.025, 6, 16), std(0x2a2a2a)); net.rotation.x = Math.PI / 2; net.position.y = -0.05;
+  t.add(ball, net);
+  t.position.set(x, -0.05, z);
+  scene.add(shadowed(t));
+  play(t, [new THREE.NumberKeyframeTrack('.position[y]', [0, 1.2, 2.4], [-0.02, 0.07, -0.02])], 2.4, i / 3);
 });
 
-// --- 별 파티클 ---
-const N = 2500;
-const pos = new Float32Array(N * 3);
-for (let i = 0; i < N; i++) {
-  const r = 15 + Math.random() * 60;
-  const t = Math.random() * Math.PI * 2;
-  const p = Math.acos(2 * Math.random() - 1);
-  pos[i * 3]     = r * Math.sin(p) * Math.cos(t);
-  pos[i * 3 + 1] = r * Math.sin(p) * Math.sin(t);
-  pos[i * 3 + 2] = r * Math.cos(p);
-}
-const starGeo = new THREE.BufferGeometry();
-starGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xaab4ff, size: 0.12, sizeAttenuation: true }));
-scene.add(stars);
-
-scene.add(new THREE.AmbientLight(0xffffff, 0.35));
-
-// --- 애니메이션 루프 ---
-const clock = new THREE.Clock();
-function animate() {
-  const t = clock.getElapsedTime();
-
-  knot.rotation.x = t * 0.4;
-  knot.rotation.y = t * 0.6;
-  knot.material.color.setHSL((t * 0.05) % 1, 0.7, 0.6);
-  knot.scale.setScalar(1 + Math.sin(t * 1.5) * 0.05);
-
-  wire.rotation.y = -t * 0.15;
-  wire.rotation.z = t * 0.1;
-
-  for (const o of orbiters) {
-    const a = t * o.speed + o.phase;
-    o.mesh.position.set(
-      Math.cos(a) * o.radius,
-      Math.sin(a) * o.radius * Math.sin(o.tilt),
-      Math.sin(a) * o.radius * Math.cos(o.tilt)
-    );
+// ---------- 갈매기 (비행 경로 + 날갯짓 키프레임) ----------
+function gull(index) {
+  const g = new THREE.Group();
+  const white = std(0xffffff, { roughness: 0.6 });
+  const body = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 6).scale(1.9, 0.7, 0.8), white);
+  const beak = new THREE.Mesh(new THREE.ConeGeometry(0.03, 0.1, 4).rotateZ(-Math.PI / 2), std(0xffa31a)); beak.position.x = 0.25;
+  g.add(body, beak);
+  const wings = [];
+  for (const s of [1, -1]) {
+    const pivot = new THREE.Group(); pivot.position.z = s * 0.04;
+    pivot.add(new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.015, 0.55).translate(0, 0, s * 0.28), white));
+    g.add(pivot);
+    const times = [0, 0.3, 0.6], vals = [], q = new THREE.Quaternion(), ax = new THREE.Vector3(1, 0, 0);
+    for (const a of [0.55, -0.55, 0.55]) { q.setFromAxisAngle(ax, a * s); vals.push(q.x, q.y, q.z, q.w); }
+    play(pivot, [new THREE.QuaternionKeyframeTrack('.quaternion', times, vals)], 0.6, index * 0.17);
   }
+  g.scale.setScalar(1.4);
+  const period = 24 + index * 4;
+  play(g, frames(80, period, ellipseFn(8 + index * 1.4, 5.5 + index * 0.9, 6 + index * 0.7, 0.4, 3, 0.25)), period, index / 5);
+  scene.add(g);
+}
+for (let i = 0; i < 5; i++) gull(i);
 
-  stars.rotation.y = t * 0.01;
+// ---------- 구름 (이동 + 크기 키프레임) ----------
+for (let i = 0; i < 5; i++) {
+  const g = new THREE.Group();
+  const m = std(0xffffff, { roughness: 1, emissive: 0xffffff, emissiveIntensity: 0.25 });
+  [[0, 0, 0, 1], [0.9, -0.1, 0.2, 0.75], [-0.9, -0.1, -0.1, 0.7], [0.3, 0.2, -0.5, 0.65]].forEach(([x, y, z, s]) => {
+    const p = new THREE.Mesh(new THREE.IcosahedronGeometry(s, 1), m); p.position.set(x, y, z); g.add(p);
+  });
+  g.traverse(o => { if (o.isMesh) o.castShadow = true; });
+  const T = 55 + i * 9, y = 9 + (i % 3) * 1.5, z = -14 + i * 7;
+  scene.add(g);
+  play(g, [
+    new THREE.VectorKeyframeTrack('.position', [0, T], [-28, y, z, 28, y, z]),
+    new THREE.VectorKeyframeTrack('.scale', [0, 0.08 * T, 0.92 * T, T], [0.01, 0.01, 0.01, 1, 1, 1, 1, 1, 1, 0.01, 0.01, 0.01])
+  ], T, i / 5);
+}
 
+// ---------- 카드 UI / 카메라 이동 ----------
+const spots = [
+  { ko: '제주 전경', en: 'OVERVIEW', desc: '바다 위에 떠 있는 작은 제주도. 드래그해서 돌려 보세요.', target: [0, 0.8, 0], pos: [24, 17, 26] },
+  { ko: '한라산', en: 'HALLASAN', desc: '해발 1,947m, 섬 한가운데 솟은 화산. 정상에는 백록담이 있어요.', target: [-1, 3.6, 0.5], pos: [6, 8, 10] },
+  { ko: '성산일출봉', en: 'SEONGSAN ILCHULBONG', desc: '바다에서 솟은 거대한 분화구. 일출 명소로 유명해요.', target: [9, 2, -1.5], pos: [15, 6, 6] },
+  { ko: '유채꽃밭', en: 'CANOLA FIELDS', desc: '봄이 되면 노랗게 물드는 제주의 대표 풍경이에요.', target: [4.5, 0.8, 2.8], pos: [8.5, 4, 9] },
+  { ko: '감귤농장', en: 'TANGERINE FARM', desc: '겨울이면 주황빛 감귤이 주렁주렁 열려요.', target: [-5, 0.9, 3.4], pos: [-8, 4.5, 9] },
+  { ko: '돌하르방', en: 'DOL HAREUBANG', desc: '제주를 지키는 돌 할아버지. 검은 현무암으로 만들었어요.', target: [1.6, 1.0, 3.9], pos: [3.5, 2.6, 8] },
+  { ko: '바람의 섬', en: 'WIND FARM', desc: '바람 많은 제주의 서쪽 해안에서 돌아가는 풍력발전기.', target: [-8, 1.4, 1], pos: [-15, 5, 6] },
+  { ko: '해녀의 바다', en: 'HAENYEO SEA', desc: '테왁이 떠 있는 바다 위를 배가 천천히 지나가요. 배를 따라가 보세요.', follow: boat, offset: [6, 4.5, 8] }
+];
+
+const cardsEl = document.getElementById('cards');
+spots.forEach((s, i) => {
+  const el = document.createElement('div');
+  el.className = 'card';
+  el.innerHTML = `<h2>${s.ko}</h2><div class="en">${s.en}</div><p>${s.desc}</p><button class="more">More</button>`;
+  el.onclick = () => focus(i);
+  cardsEl.appendChild(el);
+});
+document.getElementById('menu').onclick = () => cardsEl.classList.toggle('hidden');
+
+let goal = null, active = 0;
+function focus(i) {
+  active = i;
+  const s = spots[i], far = innerWidth / innerHeight < 0.8 ? 1.5 : 1;
+  if (s.follow) {
+    goal = { follow: s.follow, offset: new THREE.Vector3(...s.offset).multiplyScalar(far) };
+  } else {
+    const t = new THREE.Vector3(...s.target);
+    goal = { target: t, pos: t.clone().add(new THREE.Vector3(...s.pos).sub(t).multiplyScalar(far)) };
+  }
+  [...cardsEl.children].forEach((c, k) => c.classList.toggle('active', k === i));
+  cardsEl.children[i].scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+}
+controls.addEventListener('start', () => { goal = null; });
+focus(0);
+
+// ---------- 루프 ----------
+const clock = new THREE.Clock();
+const tgt = new THREE.Vector3(), pos = new THREE.Vector3();
+let frameCount = 0;
+
+function animate() {
+  const dt = Math.min(clock.getDelta(), 0.05), t = clock.elapsedTime;
+  mixers.forEach(m => m.update(dt));
+
+  // 파도
+  const p = seaGeo.attributes.position;
+  for (let i = 0; i < p.count; i++) {
+    const x = seaBase[i * 3], z = seaBase[i * 3 + 2];
+    p.setY(i, Math.sin(x * 0.7 + t * 1.4) * 0.05 + Math.cos(z * 0.9 + t * 1.1) * 0.04);
+  }
+  p.needsUpdate = true;
+
+  if (goal) {
+    const k = 1 - Math.exp(-dt * 2.5);
+    if (goal.follow) {
+      tgt.copy(goal.follow.position).y += 0.6;
+      pos.copy(goal.follow.position).add(goal.offset);
+    } else { tgt.copy(goal.target); pos.copy(goal.pos); }
+    controls.target.lerp(tgt, k);
+    camera.position.lerp(pos, k);
+    if (!goal.follow && camera.position.distanceTo(pos) < 0.05) goal = null;
+  }
+  controls.autoRotate = active === 0 && !goal;
   controls.update();
+
   renderer.render(scene, camera);
+  if (++frameCount === 30) document.getElementById('loading').classList.add('done');
   requestAnimationFrame(animate);
 }
 animate();
